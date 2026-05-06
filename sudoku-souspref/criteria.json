@@ -1,0 +1,393 @@
+{
+  "version": 1,
+  "updated": "2026-05-06",
+  "criteria": [
+    {
+      "id": "nord_loire",
+      "label": "Au nord de la Loire",
+      "family": "geo",
+      "type": "flag",
+      "flag": "nord_loire"
+    },
+    {
+      "id": "est_paris",
+      "label": "À l'est de Paris",
+      "family": "geo",
+      "type": "flag",
+      "flag": "est_paris"
+    },
+    {
+      "id": "ouest_paris",
+      "label": "À l'ouest de Paris",
+      "family": "geo",
+      "type": "flag",
+      "flag": "ouest_paris"
+    },
+    {
+      "id": "sud_lyon",
+      "label": "Au sud de Lyon",
+      "family": "geo",
+      "type": "flag",
+      "flag": "sud_lyon"
+    },
+    {
+      "id": "nord_lyon",
+      "label": "Au nord de Lyon",
+      "family": "geo",
+      "type": "flag",
+      "flag": "nord_lyon"
+    },
+    {
+      "id": "proche_mer",
+      "label": "À moins de 100 km de la mer",
+      "family": "geo",
+      "type": "flag",
+      "flag": "proche_mer"
+    },
+    {
+      "id": "proche_frontiere",
+      "label": "À moins de 100 km d'une frontière",
+      "family": "geo",
+      "type": "flag",
+      "flag": "proche_frontiere"
+    },
+    {
+      "id": "altitude_sup_600",
+      "label": "Altitude supérieure à 600 m",
+      "family": "geo",
+      "type": "flag",
+      "flag": "altitude_sup_600"
+    },
+    {
+      "id": "moins_15k",
+      "label": "Moins de 15 000 habitants",
+      "family": "demo",
+      "type": "flag",
+      "flag": "moins_15k"
+    },
+    {
+      "id": "plus_50k",
+      "label": "Plus de 50 000 habitants",
+      "family": "demo",
+      "type": "flag",
+      "flag": "plus_50k"
+    },
+    {
+      "id": "plus_100k",
+      "label": "Plus de 100 000 habitants",
+      "family": "demo",
+      "type": "flag",
+      "flag": "plus_100k"
+    },
+    {
+      "id": "gain_population",
+      "label": "A gagné de la population (>+10 %)",
+      "family": "demo",
+      "type": "flag",
+      "flag": "gain_population"
+    },
+    {
+      "id": "perte_population",
+      "label": "A perdu de la population (>-10 %)",
+      "family": "demo",
+      "type": "flag",
+      "flag": "perte_population"
+    },
+    {
+      "id": "est_pref",
+      "label": "Préfecture",
+      "family": "statut",
+      "type": "flag",
+      "flag": "est_pref"
+    },
+    {
+      "id": "est_souspref",
+      "label": "Sous-préfecture",
+      "family": "statut",
+      "type": "flag",
+      "flag": "est_souspref"
+    },
+    {
+      "id": "cathedrale",
+      "label": "Possède une cathédrale",
+      "family": "encyclopedique",
+      "type": "flag",
+      "flag": "cathedrale"
+    },
+    {
+      "id": "tramway",
+      "label": "A un tramway en service",
+      "family": "encyclopedique",
+      "type": "flag",
+      "flag": "tramway"
+    },
+    {
+      "id": "gare_tgv",
+      "label": "A une gare TGV",
+      "family": "encyclopedique",
+      "type": "flag",
+      "flag": "gare_tgv"
+    },
+    {
+      "id": "ligue_1",
+      "label": "A joué en Ligue 1",
+      "family": "encyclopedique",
+      "type": "flag",
+      "flag": "ligue_1"
+    },
+    {
+      "id": "tour_de_france",
+      "label": "Ville-étape Tour de France",
+      "family": "encyclopedique",
+      "type": "flag",
+      "flag": "tour_de_france"
+    },
+    {
+      "id": "contient_o",
+      "label": "Contient la lettre O",
+      "family": "lex",
+      "type": "flag",
+      "flag": "contient_o"
+    },
+    {
+      "id": "contient_trait_union",
+      "label": "Contient un trait d'union",
+      "family": "lex",
+      "type": "flag",
+      "flag": "contient_trait_union"
+    },
+    {
+      "id": "deux_mots_plus",
+      "label": "Composé de deux mots ou plus",
+      "family": "lex",
+      "type": "flag",
+      "flag": "deux_mots_plus"
+    },
+    {
+      "id": "dept_impair",
+      "label": "Département impair",
+      "family": "admin",
+      "type": "flag",
+      "flag": "dept_impair"
+    },
+    {
+      "id": "region_11",
+      "label": "En Île-de-France",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "11"
+    },
+    {
+      "id": "region_24",
+      "label": "En Centre-Val de Loire",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "24"
+    },
+    {
+      "id": "region_27",
+      "label": "En Bourgogne-Franche-Comté",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "27"
+    },
+    {
+      "id": "region_28",
+      "label": "En Normandie",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "28"
+    },
+    {
+      "id": "region_32",
+      "label": "Dans les Hauts-de-France",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "32"
+    },
+    {
+      "id": "region_44",
+      "label": "Dans le Grand Est",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "44"
+    },
+    {
+      "id": "region_52",
+      "label": "Dans les Pays de la Loire",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "52"
+    },
+    {
+      "id": "region_53",
+      "label": "En Bretagne",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "53"
+    },
+    {
+      "id": "region_75",
+      "label": "En Nouvelle-Aquitaine",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "75"
+    },
+    {
+      "id": "region_76",
+      "label": "En Occitanie",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "76"
+    },
+    {
+      "id": "region_84",
+      "label": "En Auvergne-Rhône-Alpes",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "84"
+    },
+    {
+      "id": "region_93",
+      "label": "En Provence-Alpes-Côte d'Azur",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "93"
+    },
+    {
+      "id": "region_94",
+      "label": "En Corse",
+      "family": "region",
+      "type": "field_eq",
+      "field": "r",
+      "value": "94"
+    },
+    {
+      "id": "cp_0",
+      "label": "Code postal commençant par 0",
+      "family": "cp",
+      "type": "cp_first",
+      "value": "0"
+    },
+    {
+      "id": "cp_1",
+      "label": "Code postal commençant par 1",
+      "family": "cp",
+      "type": "cp_first",
+      "value": "1"
+    },
+    {
+      "id": "cp_2",
+      "label": "Code postal commençant par 2",
+      "family": "cp",
+      "type": "cp_first",
+      "value": "2"
+    },
+    {
+      "id": "cp_3",
+      "label": "Code postal commençant par 3",
+      "family": "cp",
+      "type": "cp_first",
+      "value": "3"
+    },
+    {
+      "id": "cp_4",
+      "label": "Code postal commençant par 4",
+      "family": "cp",
+      "type": "cp_first",
+      "value": "4"
+    },
+    {
+      "id": "cp_5",
+      "label": "Code postal commençant par 5",
+      "family": "cp",
+      "type": "cp_first",
+      "value": "5"
+    },
+    {
+      "id": "cp_6",
+      "label": "Code postal commençant par 6",
+      "family": "cp",
+      "type": "cp_first",
+      "value": "6"
+    },
+    {
+      "id": "cp_7",
+      "label": "Code postal commençant par 7",
+      "family": "cp",
+      "type": "cp_first",
+      "value": "7"
+    },
+    {
+      "id": "cp_8",
+      "label": "Code postal commençant par 8",
+      "family": "cp",
+      "type": "cp_first",
+      "value": "8"
+    },
+    {
+      "id": "cp_9",
+      "label": "Code postal commençant par 9",
+      "family": "cp",
+      "type": "cp_first",
+      "value": "9"
+    }
+  ],
+  "mutex_pairs": [
+    [
+      "est_paris",
+      "ouest_paris"
+    ],
+    [
+      "sud_lyon",
+      "nord_lyon"
+    ],
+    [
+      "moins_15k",
+      "plus_50k"
+    ],
+    [
+      "moins_15k",
+      "plus_100k"
+    ],
+    [
+      "plus_50k",
+      "plus_100k"
+    ],
+    [
+      "est_pref",
+      "est_souspref"
+    ],
+    [
+      "gain_population",
+      "perte_population"
+    ]
+  ],
+  "wiki_title_overrides": {
+    "93066": "Saint-Denis (Seine-Saint-Denis)",
+    "97411": "Saint-Denis (La Réunion)",
+    "97225": "Saint-Pierre (Martinique)",
+    "97416": "Saint-Pierre (La Réunion)",
+    "97415": "Saint-Paul (La Réunion)",
+    "97410": "Saint-Benoît (La Réunion)",
+    "97308": "Saint-Georges (Guyane)"
+  },
+  "min_candidates_per_cell": 5,
+  "max_per_family": 2,
+  "discovery_filter": {
+    "statut": "souspref",
+    "exclude_flag": "plus_50k"
+  }
+}

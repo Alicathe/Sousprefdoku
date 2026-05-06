@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sudoku des Sous-préfectures</title>
+<style>
+  :root {
+    --bleu:        #000091;
+    --bleu-clair:  #6A6AF4;
+    --rouge:       #E1000F;
+    --vert:        #18753C;
+    --vert-bg:     #B8FEC9;
+    --orange:      #B34000;
+    --orange-bg:   #FFE9B0;
+    --rouge-bg:    #FCC0BA;
+    --gris-bg:     #F5F5FE;
+    --gris-bord:   #DDDDDD;
+    --gris-clair:  #EEEEEE;
+    --texte:       #161616;
+    --gris-doux:   #666666;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Marianne", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--texte);
+    background: var(--gris-bg);
+    line-height: 1.4;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header.rf { background: white; border-bottom: 1px solid var(--gris-bord); padding: 14px 20px; }
+  .rf-logo { display: inline-flex; align-items: center; gap: 12px; }
+  .rf-flag { display: flex; height: 36px; }
+  .rf-flag span { display: block; width: 12px; height: 100%; }
+  .rf-flag span:nth-child(1) { background: var(--bleu); }
+  .rf-flag span:nth-child(2) { background: white; border-top: 1px solid var(--gris-bord); border-bottom: 1px solid var(--gris-bord); }
+  .rf-flag span:nth-child(3) { background: var(--rouge); }
+  .rf-text { font-weight: 700; text-transform: uppercase; line-height: 1.05; font-size: 13px; letter-spacing: 0.04em; }
+
+  main { max-width: 880px; margin: 0 auto; padding: 24px 16px 80px; width: 100%; flex: 1; }
+  h1 { font-size: 26px; margin: 0 0 4px; color: var(--bleu); letter-spacing: -0.02em; }
+  .subtitle { margin: 0 0 18px; color: var(--gris-doux); font-size: 14px; }
+
+  .meta-bar { display: flex; justify-content: space-between; align-items: center; background: white; border: 1px solid var(--gris-bord); padding: 10px 14px; margin-bottom: 18px; font-size: 13px; flex-wrap: wrap; gap: 8px; }
+  .meta-bar strong { color: var(--bleu); font-size: 17px; }
+  .progress { color: var(--gris-doux); font-size: 12px; }
+
+  .grid { display: grid; grid-template-columns: 150px repeat(3, 1fr); gap: 6px; background: white; border: 1px solid var(--gris-bord); padding: 10px; overflow-x: auto; }
+  .grid > .corner { background: transparent; }
+  .grid > .col-header, .grid > .row-header { background: var(--bleu); color: white; padding: 8px; font-size: 12px; font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; line-height: 1.25; min-height: 56px; }
+  .grid > .row-header { text-align: left; padding: 8px 10px; }
+  .grid > .cell { position: relative; background: var(--gris-clair); border: 1px solid var(--gris-bord); padding: 8px; min-height: 84px; display: flex; flex-direction: column; justify-content: center; }
+  .grid > .cell.valid { background: var(--vert-bg); border-color: var(--vert); }
+  .grid > .cell.invalid { background: var(--rouge-bg); border-color: var(--rouge); }
+  .grid > .cell.duplicate { background: var(--orange-bg); border-color: var(--orange); }
+
+  .cell input { width: 100%; padding: 8px 10px; font-size: 13px; font-family: inherit; border: 1px solid var(--gris-bord); background: white; color: var(--texte); border-radius: 0; }
+  .cell input:focus { outline: 2px solid var(--bleu-clair); outline-offset: -1px; border-color: var(--bleu); }
+  .cell .placed { font-size: 13px; font-weight: 700; margin-bottom: 2px; color: var(--texte); }
+  .cell .placed-dept { font-size: 10px; color: var(--gris-doux); font-weight: 400; }
+  .cell .reset-btn { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border: none; background: rgba(0,0,0,0.1); color: var(--gris-doux); cursor: pointer; font-size: 11px; line-height: 1; border-radius: 50%; padding: 0; display: none; }
+  .cell.valid .reset-btn, .cell.invalid .reset-btn, .cell.duplicate .reset-btn { display: block; }
+  .cell .reset-btn:hover { background: rgba(0,0,0,0.2); color: var(--texte); }
+
+  .suggestions { position: absolute; top: 100%; left: 0; right: 0; z-index: 10; list-style: none; margin: 0; padding: 0; background: white; border: 1px solid var(--bleu); max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .suggestions li { padding: 8px 10px; cursor: pointer; border-bottom: 1px solid var(--gris-bg); font-size: 13px; display: flex; justify-content: space-between; align-items: baseline; }
+  .suggestions li:hover, .suggestions li.active { background: var(--gris-bg); }
+  .suggestions li .dept { color: var(--gris-doux); font-size: 11px; }
+  .suggestions.upward { top: auto; bottom: 100%; border-top: 1px solid var(--bleu); border-bottom: none; box-shadow: 0 -4px 12px rgba(0,0,0,0.15); }
+
+  .endgame { background: white; border-left: 6px solid var(--vert); padding: 16px 20px; margin: 16px 0; }
+  .endgame h2 { margin: 0 0 6px; color: var(--bleu); font-size: 19px; }
+  .endgame p { margin: 0 0 10px; }
+  .btn { background: var(--bleu); color: white; border: none; padding: 9px 18px; font-size: 13px; font-family: inherit; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 0.04em; }
+  .btn:hover { background: var(--bleu-clair); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--vert); color: white; padding: 10px 20px; font-size: 13px; font-weight: 600; z-index: 200; animation: fade 2s forwards; }
+  @keyframes fade { 0% { opacity: 0; } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+  .discovery { margin-top: 22px; background: white; border: 1px solid var(--gris-bord); border-left: 4px solid var(--bleu); padding: 16px 18px; }
+  .discovery h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 10px; color: var(--bleu); font-weight: 700; display: flex; align-items: center; justify-content: space-between; }
+  .discovery h3 button { background: none; border: 1px solid var(--bleu); color: var(--bleu); font-family: inherit; font-size: 11px; font-weight: 600; padding: 3px 9px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.04em; }
+  .discovery h3 button:hover { background: var(--bleu); color: white; }
+  .discovery-card { display: flex; gap: 14px; align-items: flex-start; }
+  .discovery-card img { width: 130px; height: 130px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--gris-bord); background: var(--gris-clair); }
+  .discovery-card .body { flex: 1; min-width: 0; }
+  .discovery-card .city-name { font-size: 17px; font-weight: 700; margin: 0 0 2px; color: var(--texte); }
+  .discovery-card .city-meta { font-size: 12px; color: var(--gris-doux); margin: 0 0 8px; }
+  .discovery-card .extract { font-size: 13px; color: var(--texte); margin: 0 0 10px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .discovery-card a.read-more { font-size: 12px; color: var(--bleu); text-decoration: none; font-weight: 600; }
+  .discovery-card a.read-more:hover { text-decoration: underline; }
+  .discovery-loading { color: var(--gris-doux); font-size: 13px; padding: 14px 0; text-align: center; }
+
+  .rules { margin-top: 28px; padding: 14px 16px; border-top: 1px solid var(--gris-bord); color: var(--gris-doux); font-size: 12px; line-height: 1.55; }
+  .rules h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 6px; color: var(--gris-doux); font-weight: 600; }
+  .rules p { margin: 0 0 8px; }
+  .rules .pill { display: inline-block; padding: 1px 6px; background: var(--gris-clair); border: 1px solid var(--gris-bord); font-size: 11px; }
+  .rules .pill.v { background: var(--vert-bg); border-color: var(--vert); }
+  .rules .pill.i { background: var(--rouge-bg); border-color: var(--rouge); }
+  .rules .pill.d { background: var(--orange-bg); border-color: var(--orange); }
+
+  .splash { padding: 60px 20px; text-align: center; color: var(--gris-doux); font-size: 14px; }
+  .splash.error { color: var(--rouge); }
+
+  footer { text-align: center; padding: 14px; font-size: 11px; color: var(--gris-doux); border-top: 1px solid var(--gris-bord); background: white; }
+
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: 100px repeat(3, 1fr); gap: 4px; padding: 6px; }
+    .grid > .col-header, .grid > .row-header { font-size: 10px; min-height: 50px; padding: 5px; }
+    .grid > .cell { min-height: 70px; padding: 5px; }
+    .cell input { font-size: 12px; padding: 6px 8px; }
+    .cell .placed { font-size: 11px; }
+    .discovery-card { flex-direction: column; }
+    .discovery-card img { width: 100%; height: 160px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="rf">
+  <div class="rf-logo">
+    <div class="rf-flag" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="rf-text">République<br>Française</div>
+  </div>
+</header>
+
+<main>
+  <h1>Sudoku des Sous-préfectures</h1>
+  <p class="subtitle">Remplis la grille du jour : chaque case attend une commune satisfaisant à la fois le critère de sa ligne et celui de sa colonne.</p>
+
+  <div id="app">
+    <div class="splash">Chargement des données…</div>
+  </div>
+</main>
+
+<footer>
+  Données INSEE 2022 · Centroïdes France-GeoJSON · Altitudes sql.sh + Wikipédia · Licence Ouverte
+</footer>
+
+<script>
+'use strict';
+
+/* ─── Chargement des fichiers de configuration ────────────── */
+async function loadJSON(path) {
+  const r = await fetch(path, { cache: 'no-cache' });
+  if (!r.ok) throw new Error(path + ' (HTTP ' + r.status + ')');
+  return r.json();
+}
+
+let CORPUS = [];
+let CRITERIA = [];
+let MUTEX_PAIRS = [];
+let WIKI_OVERRIDES = {};
+let CONFIG = {};
+
+(async function init() {
+  const app = document.getElementById('app');
+  try {
+    const [data, criteria] = await Promise.all([
+      loadJSON('./data.json'),
+      loadJSON('./criteria.json'),
+    ]);
+    CORPUS = data.corpus;
+    CONFIG = criteria;
+    CRITERIA = criteria.criteria.map(compileCriterion);
+    MUTEX_PAIRS = criteria.mutex_pairs || [];
+    WIKI_OVERRIDES = criteria.wiki_title_overrides || {};
+
+    // Render the game
+    renderApp();
+  } catch (e) {
+    app.innerHTML = `<div class="splash error">Erreur de chargement : ${e.message}.<br>Si tu ouvres le fichier en local (<code>file://</code>), lance un mini-serveur :<br><code>cd dossier && python -m http.server</code>, puis ouvre <code>http://localhost:8000</code>.</div>`;
+  }
+})();
+
+/* ─── Compilation des critères ────────────────────────────── */
+function compileCriterion(c) {
+  const out = { id: c.id, label: c.label, family: c.family, type: c.type };
+  if (c.type === 'flag') {
+    out.test = x => !!x.k[c.flag];
+  } else if (c.type === 'field_eq') {
+    out.test = x => x[c.field] === c.value;
+  } else if (c.type === 'cp_first') {
+    out.test = x => cpFirst(x) === c.value;
+  } else {
+    out.test = () => false;
+  }
+  return out;
+}
+function cpFirst(c) {
+  if (c.d === '2A' || c.d === '2B') return '2';
+  return c.d[0];
+}
+
+/* ─── Helpers ─────────────────────────────────────────────── */
+function todayParis() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date()); }
+function normalize(s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[-']/g, ' '); }
+function mulberry32(seed) {
+  return function() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function hashStr(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+
+/* ─── Générateur de grille ────────────────────────────────── */
+function pickGrid(seed) {
+  const rng = mulberry32(seed);
+  const isMutex = (a, b) => MUTEX_PAIRS.some(p => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a));
+  const sample = (arr, n) => {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a.slice(0, n);
+  };
+  const minCands = CONFIG.min_candidates_per_cell || 5;
+  const maxFam = CONFIG.max_per_family || 2;
+
+  for (let attempt = 0; attempt < 5000; attempt++) {
+    const six = sample(CRITERIA, 6);
+    const ids = six.map(c => c.id);
+    let mutexC = false;
+    for (let i = 0; i < 6 && !mutexC; i++)
+      for (let j = i + 1; j < 6 && !mutexC; j++)
+        if (isMutex(ids[i], ids[j])) mutexC = true;
+    if (mutexC) continue;
+    const famCount = {};
+    six.forEach(c => { famCount[c.family] = (famCount[c.family] || 0) + 1; });
+    if (Object.values(famCount).some(v => v > maxFam)) continue;
+    const rows = six.slice(0, 3);
+    const cols = six.slice(3, 6);
+    const cellCands = [[], [], []];
+    let ok = true;
+    for (let i = 0; i < 3 && ok; i++) for (let j = 0; j < 3 && ok; j++) {
+      const cands = CORPUS.filter(c => rows[i].test(c) && cols[j].test(c));
+      if (cands.length < minCands) { ok = false; break; }
+      cellCands[i].push(cands);
+    }
+    if (!ok) continue;
+    if (!hasPerfectMatching(cellCands)) continue;
+    return { rows, cols, candidates: cellCands };
+  }
+  return null;
+}
+function hasPerfectMatching(cellCandidates) {
+  const cells = [];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) cells.push(cellCandidates[i][j].map(c => c.i));
+  const order = cells.map((c, idx) => idx).sort((a, b) => cells[a].length - cells[b].length);
+  const used = new Set();
+  function bt(k) {
+    if (k === 9) return true;
+    const idx = order[k];
+    for (const id of cells[idx]) {
+      if (used.has(id)) continue;
+      used.add(id);
+      if (bt(k + 1)) return true;
+      used.delete(id);
+    }
+    return false;
+  }
+  return bt(0);
+}
+
+/* ─── État du jeu ─────────────────────────────────────────── */
+let date, seed, PUZZLE, state;
+const KEY = () => 'mdku:' + date;
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY()));
+    if (s && s.placements && s.attempts !== undefined) return s;
+  } catch {}
+  return { placements: [[null, null, null], [null, null, null], [null, null, null]], attempts: 0, discoveryAttempts: 0 };
+}
+function saveState() { localStorage.setItem(KEY(), JSON.stringify(state)); }
+
+/* ─── Rendu ───────────────────────────────────────────────── */
+function renderApp() {
+  date = todayParis();
+  seed = hashStr(date);
+  PUZZLE = pickGrid(seed);
+  state = loadState();
+
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="meta-bar">
+      <div>Progression : <strong id="progress">0/9</strong> · <span id="attempts">0</span> essais</div>
+      <div class="progress" id="puzzle-info"></div>
+    </div>
+    <div class="grid" id="grid">
+      <div class="corner"></div>
+      <div class="col-header" id="col-0"></div>
+      <div class="col-header" id="col-1"></div>
+      <div class="col-header" id="col-2"></div>
+      <div class="row-header" id="row-0"></div>
+      <div class="cell" data-row="0" data-col="0"></div>
+      <div class="cell" data-row="0" data-col="1"></div>
+      <div class="cell" data-row="0" data-col="2"></div>
+      <div class="row-header" id="row-1"></div>
+      <div class="cell" data-row="1" data-col="0"></div>
+      <div class="cell" data-row="1" data-col="1"></div>
+      <div class="cell" data-row="1" data-col="2"></div>
+      <div class="row-header" id="row-2"></div>
+      <div class="cell" data-row="2" data-col="0"></div>
+      <div class="cell" data-row="2" data-col="1"></div>
+      <div class="cell" data-row="2" data-col="2"></div>
+    </div>
+    <div id="endgame" hidden></div>
+    <section class="discovery" id="discovery">
+      <h3>
+        <span>Découverte du jour</span>
+        <button id="discovery-refresh">Une autre</button>
+      </h3>
+      <div id="discovery-body"><div class="discovery-loading">Chargement…</div></div>
+    </section>
+    <section class="rules">
+      <h3>Comment jouer</h3>
+      <p>Chaque case attend une <strong>sous-préfecture ou préfecture française</strong> qui satisfait à la fois le critère écrit en tête de sa <strong>colonne</strong> et celui qui occupe sa <strong>ligne</strong>. Saisis le nom dans le champ et choisis dans la liste qui s'affiche.</p>
+      <p>Une commune ne peut être placée que <strong>dans une seule case</strong> de la grille. Les essais sont illimités, mais ton score correspond au nombre total d'essais.</p>
+      <p>États possibles : <span class="pill v">vert</span> = correcte · <span class="pill i">rouge</span> = la commune ne satisfait pas un des deux critères · <span class="pill d">orange</span> = déjà placée ailleurs.</p>
+      <p>La grille est <strong>la même pour tous les joueurs</strong> du jour, basée sur la date à Paris. Ta progression est sauvegardée dans le navigateur.</p>
+    </section>
+  `;
+
+  document.getElementById('puzzle-info').textContent = 'Puzzle du ' + new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  document.getElementById('discovery-refresh').addEventListener('click', () => {
+    state.discoveryAttempts = (state.discoveryAttempts || 0) + 1;
+    saveState();
+    loadDiscovery();
+  });
+
+  if (!PUZZLE) {
+    document.getElementById('grid').innerHTML = '<div style="grid-column: 1 / -1; padding: 30px; text-align:center; color:var(--rouge);">⚠️ Impossible de générer une grille pour aujourd\'hui. Reviens demain.</div>';
+    return;
+  }
+  for (let j = 0; j < 3; j++) document.getElementById('col-' + j).textContent = PUZZLE.cols[j].label;
+  for (let i = 0; i < 3; i++) document.getElementById('row-' + i).textContent = PUZZLE.rows[i].label;
+  renderGrid();
+  loadDiscovery();
+}
+
+function getCellEl(i, j) { return document.querySelector(`.cell[data-row="${i}"][data-col="${j}"]`); }
+function cellState(i, j) {
+  const insee = state.placements[i][j];
+  if (!insee) return 'empty';
+  let count = 0;
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) if (state.placements[r][c] === insee) count++;
+  if (count > 1) return 'duplicate';
+  const guess = CORPUS.find(c => c.i === insee);
+  if (!guess) return 'invalid';
+  if (PUZZLE.rows[i].test(guess) && PUZZLE.cols[j].test(guess)) return 'valid';
+  return 'invalid';
+}
+function renderCell(i, j) {
+  const el = getCellEl(i, j);
+  el.classList.remove('valid', 'invalid', 'duplicate');
+  el.innerHTML = '';
+  const s = cellState(i, j);
+  const insee = state.placements[i][j];
+  if (s === 'empty') {
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.placeholder = 'Tape un nom…'; inp.autocomplete = 'off';
+    inp.dataset.row = i; inp.dataset.col = j;
+    el.appendChild(inp);
+    setupAutocomplete(inp, i, j);
+  } else {
+    el.classList.add(s);
+    const guess = CORPUS.find(c => c.i === insee);
+    const div = document.createElement('div');
+    div.innerHTML = `<div class="placed">${guess.n}</div><div class="placed-dept">${guess.dn} (${guess.d})</div>`;
+    el.appendChild(div);
+    const btn = document.createElement('button');
+    btn.className = 'reset-btn'; btn.textContent = '×'; btn.title = 'Libérer';
+    btn.onclick = () => clearCell(i, j);
+    el.appendChild(btn);
+  }
+}
+function renderGrid() {
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) renderCell(i, j);
+  let valid = 0;
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (cellState(i, j) === 'valid') valid++;
+  document.getElementById('progress').textContent = valid + '/9';
+  document.getElementById('attempts').textContent = state.attempts;
+  const eg = document.getElementById('endgame');
+  eg.hidden = valid !== 9;
+  if (valid === 9) {
+    eg.className = 'endgame';
+    eg.innerHTML = `<h2>Bravo, grille complétée !</h2><p>Réussie en <strong>${state.attempts}</strong> essai${state.attempts > 1 ? 's' : ''}.</p><button class="btn" onclick="share()">Partager le résultat</button>`;
+  }
+}
+function placeCommune(i, j, insee) {
+  state.placements[i][j] = insee;
+  state.attempts++;
+  saveState();
+  renderGrid();
+}
+function clearCell(i, j) {
+  state.placements[i][j] = null;
+  saveState();
+  renderGrid();
+  const inp = getCellEl(i, j).querySelector('input');
+  if (inp) inp.focus();
+}
+
+function setupAutocomplete(inp, i, j) {
+  let activeIdx = -1;
+  let sugg = null;
+  function close() { if (sugg) { sugg.remove(); sugg = null; activeIdx = -1; } }
+  inp.addEventListener('input', () => {
+    const q = normalize(inp.value.trim());
+    close();
+    if (q.length < 2) return;
+    const matches = CORPUS.filter(c => c.nn.includes(q))
+      .sort((a, b) => {
+        const aS = a.nn.startsWith(q) ? 0 : 1;
+        const bS = b.nn.startsWith(q) ? 0 : 1;
+        return aS - bS || a.nn.localeCompare(b.nn);
+      }).slice(0, 8);
+    if (!matches.length) return;
+    sugg = document.createElement('ul');
+    sugg.className = 'suggestions';
+    sugg.innerHTML = matches.map((c, idx) =>
+      `<li data-insee="${c.i}" ${idx === 0 ? 'class="active"' : ''}><span>${c.n}</span><span class="dept">${c.dn} (${c.d})</span></li>`
+    ).join('');
+    sugg.querySelectorAll('li').forEach(li => {
+      li.addEventListener('mousedown', e => { e.preventDefault(); placeCommune(i, j, li.dataset.insee); });
+    });
+    inp.parentElement.appendChild(sugg);
+    activeIdx = 0;
+    const inpRect = inp.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - inpRect.bottom;
+    const spaceAbove = inpRect.top;
+    if (spaceBelow < sugg.offsetHeight + 20 && spaceAbove > spaceBelow) sugg.classList.add('upward');
+  });
+  inp.addEventListener('keydown', e => {
+    if (!sugg) return;
+    const items = [...sugg.querySelectorAll('li')];
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = (activeIdx + 1) % items.length; items.forEach((it, idx) => it.classList.toggle('active', idx === activeIdx)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = (activeIdx - 1 + items.length) % items.length; items.forEach((it, idx) => it.classList.toggle('active', idx === activeIdx)); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (activeIdx >= 0 && items[activeIdx]) placeCommune(i, j, items[activeIdx].dataset.insee); }
+    else if (e.key === 'Escape') close();
+  });
+  inp.addEventListener('blur', () => setTimeout(close, 200));
+}
+
+/* ─── Découverte du jour ─────────────────────────────────── */
+function getDiscoveryPool() {
+  const f = CONFIG.discovery_filter || {};
+  return CORPUS.filter(c => {
+    if (f.statut && c.s !== f.statut) return false;
+    if (f.exclude_flag && c.k[f.exclude_flag]) return false;
+    return true;
+  });
+}
+async function loadDiscovery() {
+  const pool = getDiscoveryPool();
+  if (!pool.length) return;
+  const idx = hashStr(date + ':discovery:' + (state.discoveryAttempts || 0)) % pool.length;
+  const c = pool[idx];
+  const title = WIKI_OVERRIDES[c.i] || c.n;
+  const body = document.getElementById('discovery-body');
+  body.innerHTML = '<div class="discovery-loading">Chargement…</div>';
+  try {
+    const url = 'https://fr.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title);
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if (d.type === 'disambiguation') throw new Error('homonymie');
+    const img = d.thumbnail?.source || '';
+    const extract = (d.extract || '').replace(/</g, '&lt;');
+    const pageUrl = d.content_urls?.desktop?.page || ('https://fr.wikipedia.org/wiki/' + encodeURIComponent(title));
+    body.innerHTML = `
+      <div class="discovery-card">
+        ${img ? `<img src="${img}" alt="${c.n}">` : `<div style="width:130px;height:130px;background:var(--gris-clair);display:flex;align-items:center;justify-content:center;color:var(--gris-doux);font-size:11px;flex-shrink:0;border:1px solid var(--gris-bord);">Pas d'image</div>`}
+        <div class="body">
+          <p class="city-name">${c.n}</p>
+          <p class="city-meta">${c.dn} (${c.d}) · ${c.s === 'pref' ? 'Préfecture' : 'Sous-préfecture'}</p>
+          <p class="extract">${extract}</p>
+          <a class="read-more" href="${pageUrl}" target="_blank" rel="noopener">Lire sur Wikipédia →</a>
+        </div>
+      </div>`;
+  } catch (e) {
+    body.innerHTML = `
+      <div class="discovery-card">
+        <div style="width:130px;height:130px;background:var(--gris-clair);display:flex;align-items:center;justify-content:center;color:var(--gris-doux);font-size:11px;flex-shrink:0;border:1px solid var(--gris-bord);text-align:center;padding:8px;">Aperçu indisponible</div>
+        <div class="body">
+          <p class="city-name">${c.n}</p>
+          <p class="city-meta">${c.dn} (${c.d})</p>
+          <p class="extract" style="color:var(--gris-doux);font-style:italic;">Impossible de charger le résumé Wikipédia.</p>
+          <a class="read-more" href="https://fr.wikipedia.org/wiki/${encodeURIComponent(title)}" target="_blank" rel="noopener">Voir sur Wikipédia →</a>
+        </div>
+      </div>`;
+  }
+}
+
+/* ─── Partage ─────────────────────────────────────────────── */
+function share() {
+  const lines = [];
+  for (let i = 0; i < 3; i++) {
+    const row = [];
+    for (let j = 0; j < 3; j++) {
+      const s = cellState(i, j);
+      row.push(s === 'valid' ? '🟦' : s === 'duplicate' ? '🟧' : s === 'invalid' ? '🟥' : '⬜');
+    }
+    lines.push(row.join(''));
+  }
+  const txt = `Sudoku des Sous-préfectures · ${date}\n${state.attempts} essais 🇫🇷\n${lines.join('\n')}`;
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast('Résultat copié'));
+  else prompt('Copie ce résultat :', txt);
+}
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+window.share = share;
+</script>
+
+</body>
+</html>
