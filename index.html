@@ -752,7 +752,9 @@
       right: 8px;
       bottom: 8px;
       z-index: 1000;
-      max-height: 50vh;
+      /* 4 lignes × ~52px + 2px de chrome ≈ 210px : on garde la grille
+         (en-têtes ligne/colonne + cellule active) bien visible au-dessus. */
+      max-height: 220px;
       border: 1.5px solid var(--encre);
       border-radius: 2px;
       box-shadow: 0 -10px 30px rgba(31, 46, 74, 0.28);
@@ -1346,9 +1348,12 @@ function setupAutocomplete(inp, i, j) {
     const q = normalize(inp.value.trim());
     close();
     if (q.length < 2) return;
+    // Mobile : 4 suggestions max (préserve la visibilité des en-têtes
+    // ligne/colonne de la grille). Desktop : 8 (place dispo).
+    const limit = isMobile() ? 4 : 8;
     const matches = CORPUS.filter(c => c.nn.includes(q))
       .sort((a, b) => { const aS = a.nn.startsWith(q) ? 0 : 1; const bS = b.nn.startsWith(q) ? 0 : 1; return aS - bS || a.nn.localeCompare(b.nn); })
-      .slice(0, 8);
+      .slice(0, limit);
     if (!matches.length) return;
     sugg = document.createElement('ul');
     sugg.className = 'suggestions';
