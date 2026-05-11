@@ -1688,10 +1688,13 @@ function computePersonalStats(stats) {
   const today = h.find(x => x.date === date);
   return { total, best, avg, streak, today: today?.attempts };
 }
+let cachedGlobalStats = null;
 function overlayCellStats() {
   if (!CONFIG.stats_endpoint) return;
   fetch(CONFIG.stats_endpoint + '?date=' + encodeURIComponent(date), { cache: 'no-cache' }).then(r => r.json()).then(global => {
-    if (!global || !global.cell_avg || global.cell_count < 1) return;
+    if (!global || global.error) return;
+    cachedGlobalStats = global;
+    if (!global.cell_avg || global.cell_count < 1) return;
     for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
       const idx = i * 3 + j;
       const yours = state.cellAttempts[i][j] || 0;
@@ -1733,17 +1736,64 @@ async function loadDiscovery() {
 
 /* ─── Partage ────────────────────────────────────────────── */
 function share() {
+  const totalAttempts = state.attempts;
+  const t = state.finishedAt && state.startedAt ? formatDuration(state.finishedAt - state.startedAt) : '';
+
+  // Grille emoji : si cell_avg dispo → comparatif vs moyenne globale ; sinon → fallback absolu
+  const g = cachedGlobalStats;
+  const cellAvg = (g && g.cell_avg && g.cell_count >= 1) ? g.cell_avg : null;
   const lines = [];
   for (let i = 0; i < 3; i++) {
     const row = [];
     for (let j = 0; j < 3; j++) {
-      const s = cellState(i, j);
-      row.push(s === 'valid' ? '🟫' : s === 'duplicate' ? '🟧' : s === 'invalid' ? '⬛' : '⬜');
+      const yours = state.cellAttempts[i][j] || 0;
+      let emoji;
+      if (cellAvg && cellAvg[i*3+j] != null && cellAvg[i*3+j] > 0) {
+        const avg = cellAvg[i*3+j];
+        if (yours <= avg * 0.7) emoji = '🟩';
+        else if (yours <= avg * 1.2) emoji = '🟨';
+        else if (yours <= avg * 1.5) emoji = '🟧';
+        else emoji = '🟥';
+      } else {
+        if (yours <= 1) emoji = '🟩';
+        else if (yours <= 3) emoji = '🟨';
+        else if (yours <= 6) emoji = '🟧';
+        else emoji = '🟥';
+      }
+      row.push(emoji);
     }
     lines.push(row.join(''));
   }
-  const t = state.finishedAt && state.startedAt ? formatDuration(state.finishedAt - state.startedAt) : '';
-  const txt = `Sudoku des Sous-préfectures · ${date}\n${state.attempts} essais · ${t}\n${lines.join('\n')}`;
+
+  // Percentile depuis l'histogramme
+  let percentile = null;
+  if (g && g.histogram) {
+    const entries = Object.entries(g.histogram).map(([k,v]) => [parseInt(k), v]);
+    const total = entries.reduce((s, [,n]) => s + n, 0);
+    if (total >= 3) {
+      const eqOrBetter = entries.reduce((s, [att, n]) => s + (att <= totalAttempts ? n : 0), 0);
+      percentile = Math.max(1, Math.round(eqOrBetter / total * 100));
+    }
+  }
+
+  // Streak depuis l'historique local
+  const personal = computePersonalStats(loadLocalStats());
+  const streak = personal?.streak || 0;
+
+  // Date FR : YYYY-MM-DD → DD/MM
+  const [Y, M, D] = date.split('-');
+  const dateFR = `${D}/${M}`;
+
+  // URL canonique (sans protocole, sans trailing slash)
+  const url = (location.origin + location.pathname).replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+  // Construction du texte
+  const scoreLine = percentile
+    ? `${totalAttempts} essais · ${t} · Top ${percentile}%`
+    : `${totalAttempts} essais · ${t}`;
+  const streakLine = streak > 1 ? `Streak ${streak} 🔥 · ${url}` : url;
+  const txt = `Sudoku des Sous-préf · ${dateFR}\n${lines.join('\n')}\n${scoreLine}\n${streakLine}`;
+
   if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast('Résultat copié'));
   else prompt('Copie :', txt);
 }
