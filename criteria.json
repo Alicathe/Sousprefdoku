@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-05-06",
+  "updated": "2026-05-11",
   "criteria": [
     {
       "id": "nord_loire",
@@ -377,12 +377,12 @@
   ],
   "wiki_title_overrides": {
     "93066": "Saint-Denis (Seine-Saint-Denis)",
-    "97411": "Saint-Denis (La Réunion)",
     "97225": "Saint-Pierre (Martinique)",
-    "97416": "Saint-Pierre (La Réunion)",
-    "97415": "Saint-Paul (La Réunion)",
+    "97308": "Saint-Georges (Guyane)",
     "97410": "Saint-Benoît (La Réunion)",
-    "97308": "Saint-Georges (Guyane)"
+    "97411": "Saint-Denis (La Réunion)",
+    "97415": "Saint-Paul (La Réunion)",
+    "97416": "Saint-Pierre (La Réunion)"
   },
   "min_candidates_per_cell": 5,
   "max_per_family": 2,
@@ -393,5 +393,5 @@
   "corpus_filter": {
     "statut": "souspref"
   },
-  "stats_endpoint": ""
+  "stats_endpoint": "https://script.google.com/macros/s/AKfycbyVuVRxA8U_OxiDwl-uuGnJUmGtU4UIESUvMHt0WjcGHN-B-ziuyP4iqGt2KOXML0KQ/exec"
 }
