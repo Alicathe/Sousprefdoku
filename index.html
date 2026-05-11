@@ -1305,6 +1305,9 @@ function placeCommune(i, j, insee) {
   state.placements[i][j] = insee;
   state.attempts++;
   state.cellAttempts[i][j] = (state.cellAttempts[i][j] || 0) + 1;
+  // Une fois la commune placée, la sheet de suggestions n'a plus de raison
+  // d'exister (l'input parent va être détruit par renderGrid).
+  if (typeof clearAllSuggestions === 'function') clearAllSuggestions();
   saveState();
   renderGrid();
 }
@@ -1317,6 +1320,13 @@ function clearCell(i, j) {
 }
 
 /* ─── Autocomplétion ─────────────────────────────────────── */
+// Nettoyeur global : garantit qu'aucune liste de suggestions résiduelle
+// n'est laissée dans le DOM (évite l'empilement quand on change de cellule
+// pendant le délai de blur).
+function clearAllSuggestions() {
+  document.querySelectorAll('.suggestions').forEach(s => s.remove());
+}
+
 function setupAutocomplete(inp, i, j) {
   let activeIdx = -1;
   let sugg = null;
@@ -1347,6 +1357,7 @@ function setupAutocomplete(inp, i, j) {
   inp.addEventListener('input', () => {
     const q = normalize(inp.value.trim());
     close();
+    clearAllSuggestions(); // nettoie aussi d'éventuelles sheets d'autres cellules
     if (q.length < 2) return;
     // Mobile : 4 suggestions max (préserve la visibilité des en-têtes
     // ligne/colonne de la grille). Desktop : 8 (place dispo).
@@ -1387,11 +1398,15 @@ function setupAutocomplete(inp, i, j) {
     else if (e.key === 'Escape') close();
   });
   inp.addEventListener('blur', () => setTimeout(close, 200));
-  // Mobile : quand le clavier ouvre, on amène la cellule active dans la
-  // zone visible (sinon le clavier la masque). Délai pour laisser le
-  // visualViewport se mettre à jour.
   inp.addEventListener('focus', () => {
-    if (window.matchMedia && !window.matchMedia('(max-width: 720px)').matches) return;
+    // Nettoie immédiatement toute sheet résiduelle d'une autre cellule
+    // (sinon elle reste visible 200ms à cause du timeout de blur, ce qui
+    // donne l'impression que le champ vide propose déjà des villes).
+    clearAllSuggestions();
+    sugg = null;
+    // Mobile : amène la cellule active dans la zone visible (sinon le
+    // clavier la masque). Délai pour laisser visualViewport s'actualiser.
+    if (!isMobile()) return;
     setTimeout(() => {
       try { inp.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
       catch (e) { inp.parentElement.scrollIntoView(); }
