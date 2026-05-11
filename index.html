@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sudoku des Sous-préfectures</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,7 +27,12 @@
     --mono:        'IBM Plex Mono', ui-monospace, Menlo, monospace;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   body {
     font-family: var(--sans);
     color: var(--encre);
@@ -35,6 +40,24 @@
     line-height: 1.55;
     font-feature-settings: "kern" 1;
     min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* ─── Tactile ─────────────────────────────────────────────
+     Anti-zoom iOS Safari : tout input doit être ≥ 16px sur
+     les appareils tactiles. Sur desktop (souris) on laisse les
+     règles spécifiques s'exprimer (le placeholder ne sera pas
+     tronqué dans une cellule étroite). */
+  @media (hover: none) and (pointer: coarse) {
+    input, select, textarea {
+      font-size: 16px;
+    }
+    .cell input { font-size: 16px; }
+    .pseudo-input { font-size: 16px; }
+  }
+  button, a, .cell, .suggestions li, .gallery-day, .pseudo-badge,
+  .reset-btn, .stats-btn, .btn {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   .page {
     max-width: 900px;
@@ -237,7 +260,7 @@
   .cell input {
     width: 100%;
     padding: 7px 8px;
-    font-size: 13px;
+    font-size: 13px; /* surchargé à 16px sur tactile via @media hover:none */
     font-family: var(--sans);
     border: 0.5px solid var(--ocre);
     background: white;
@@ -649,22 +672,141 @@
   .splash.error { color: var(--bordeaux); }
   .splash code { font-family: var(--mono); font-size: 12px; background: var(--creme-clair); padding: 2px 6px; }
 
-  /* ─── Responsive ─────────────────────────────────────────── */
+  /* ─── Responsive ───────────────────────────────────────────
+     Stratégie : sous 720px on récupère de la place horizontale
+     (paddings agressifs, en-têtes colonnes verticaux), on
+     remonte les fontes intracellulaires, on agrandit les touch
+     targets, et on traite l'autocomplétion comme un menu
+     élargi. Sous 380px (iPhone SE / petits Android), on serre
+     encore d'un cran. */
   @media (max-width: 720px) {
-    .game-area { grid-template-columns: 1fr; }
-    .grid { grid-template-columns: 95px repeat(3, 1fr); gap: 3px; }
-    .col-header, .row-header { font-size: 10px; padding: 5px; }
-    .cell { min-height: 76px; padding: 6px; }
-    .cell-name { font-size: 11.5px; }
-    .gallery-grid { grid-template-columns: repeat(4, 1fr); }
-    .leaderboard-row { grid-template-columns: 36px 1fr 76px 60px; gap: 8px; font-size: 12px; }
-    .discovery-card { flex-direction: column; }
-    .discovery-card img { width: 100%; height: 140px; }
+    /* Conteneurs : on récupère 12-16px de gouttière */
+    .page { margin: 8px auto; padding: 0 6px; }
+    .cartouche { padding: 4px; }
+    .cartouche-inner { padding: 14px 12px; }
+
+    /* Header : empilé, plus compact */
+    header { flex-wrap: wrap; gap: 8px; padding-bottom: 12px; }
+    .brand { gap: 10px; }
     .brand-title { font-size: 19px; }
     .brand-title .lettrine { font-size: 30px; }
+    .brand-subtitle { font-size: 9px; letter-spacing: 0.14em; }
+    .compass { display: none; } /* boussole décorative — gain d'espace */
+
+    /* Meta-bar : taille raisonnable, gap serré */
+    .meta-bar { font-size: 11px; padding: 9px 0; gap: 8px; }
+    .puzzle-date { font-size: 12px; margin: 10px 0 4px; }
+
+    /* Game area : empilé (grille puis side-panel) */
+    .game-area { grid-template-columns: 1fr; gap: 12px; margin-top: 10px; }
+    .grid-shell { padding: 8px; }
+
+    /* Grille : row-header réduit, headers horizontaux compacts.
+       Le min-content sur la 1re ligne laisse l'en-tête s'enrouler. */
+    .grid {
+      grid-template-columns: 78px repeat(3, 1fr);
+      gap: 4px;
+    }
+    .col-header {
+      font-size: 10.5px;
+      padding: 5px 4px;
+      line-height: 1.18;
+      hyphens: auto;
+      -webkit-hyphens: auto;
+    }
+    .row-header {
+      font-size: 10.5px;
+      padding: 6px 7px;
+      line-height: 1.18;
+      hyphens: auto;
+      -webkit-hyphens: auto;
+    }
+
+    /* Cellule : plus haute, plus respirante, fontes lisibles */
+    .cell {
+      min-height: 104px;
+      padding: 8px 9px;
+    }
+    .cell-name { font-size: 13.5px; line-height: 1.2; }
+    .cell-dept { font-size: 10px; margin-top: 2px; }
+    .cell-stats { font-size: 10.5px; margin-top: 5px; padding-top: 4px; }
+    .cell-empty-hint { font-size: 12px; }
+
+    /* Reset btn : touch target acceptable (32x32 ~) */
+    .cell .reset-btn {
+      width: 28px;
+      height: 28px;
+      font-size: 16px;
+      top: 2px;
+      right: 2px;
+    }
+
+    /* Suggestions d'autocomplétion : plus larges, doigts-friendly.
+       En cas de cellule basse, le flip .upward gère déjà l'écueil. */
+    .suggestions { max-height: 240px; }
+    .suggestions li {
+      padding: 11px 12px;
+      font-size: 14.5px;
+    }
+    .suggestions li .dept { font-size: 11px; }
+
+    /* Side panel sous la grille : panels plus aérés */
+    .panel { padding: 12px 14px; }
+    .legend-row { font-size: 12px; gap: 8px; }
+    .legend-swatch { width: 12px; height: 12px; }
+
+    /* Boutons : touch target conforme */
+    .btn { padding: 11px 18px; font-size: 12px; }
+    .stats-btn { padding: 7px 12px; font-size: 12px; }
+    .pseudo-badge { padding: 6px 10px; font-size: 12px; }
+
+    /* Section sous la grille */
+    .section { padding: 12px 14px; margin-top: 16px; }
+    .section-title { font-size: 14px; }
+
+    /* Gallery hebdo */
+    .gallery-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+
+    /* Leaderboard : colonnes serrées */
+    .leaderboard-row {
+      grid-template-columns: 32px 1fr 70px 56px;
+      gap: 6px;
+      font-size: 12.5px;
+      padding: 8px 4px;
+    }
+    .lb-rank, .lb-attempts, .lb-time { font-size: 11px; }
+
+    /* Discovery card : empilé */
+    .discovery-card { flex-direction: column; }
+    .discovery-card img { width: 100%; height: 160px; }
+
+    /* Modale stats : usage maximal de l'écran */
+    .modal-bg { padding: 8px; align-items: flex-start; padding-top: 16px; }
+    .modal { padding: 18px 16px; max-height: calc(100vh - 32px); }
+    .modal h2 { font-size: 19px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-cell { padding: 9px 10px; }
+    .stat-cell .value { font-size: 20px; }
+    .percentile-card .big { font-size: 26px; }
+
+    /* Endgame */
+    .endgame { padding: 14px 16px; }
+    .endgame h2 { font-size: 18px; }
+    .endgame p { font-size: 13.5px; }
   }
-  @media (max-width: 440px) {
+
+  @media (max-width: 380px) {
+    /* iPhone SE / petits Android : on serre encore */
+    .cartouche-inner { padding: 12px 10px; }
+    .grid { grid-template-columns: 64px repeat(3, 1fr); gap: 3px; }
+    .col-header { font-size: 10px; max-height: 34px; }
+    .row-header { font-size: 10px; padding: 5px 6px; }
+    .cell { min-height: 96px; padding: 7px 7px; }
+    .cell-name { font-size: 13px; }
+    .cell-dept { font-size: 9.5px; }
     .gallery-grid { grid-template-columns: repeat(3, 1fr); }
+    .brand-title { font-size: 17px; }
+    .brand-title .lettrine { font-size: 26px; }
   }
 </style>
 </head>
@@ -1041,7 +1183,10 @@ function renderCell(i, j) {
   const insee = state.placements[i][j];
   if (s === 'empty') {
     const inp = document.createElement('input');
-    inp.type = 'text'; inp.placeholder = 'Tape un nom de commune…'; inp.autocomplete = 'off';
+    inp.type = 'text'; inp.placeholder = 'Nom de commune…'; inp.autocomplete = 'off';
+    inp.autocapitalize = 'words'; inp.spellcheck = false;
+    inp.setAttribute('autocorrect', 'off');
+    inp.setAttribute('inputmode', 'text');
     inp.dataset.row = i; inp.dataset.col = j;
     el.appendChild(inp);
     setupAutocomplete(inp, i, j);
@@ -1151,6 +1296,10 @@ function setupAutocomplete(inp, i, j) {
   let activeIdx = -1;
   let sugg = null;
   function close() { if (sugg) { sugg.remove(); sugg = null; activeIdx = -1; } }
+  function visibleHeight() {
+    // visualViewport reflète la hauteur réellement visible (clavier exclu).
+    return (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  }
   inp.addEventListener('input', () => {
     const q = normalize(inp.value.trim());
     close();
@@ -1166,7 +1315,8 @@ function setupAutocomplete(inp, i, j) {
     inp.parentElement.appendChild(sugg);
     activeIdx = 0;
     const r = inp.getBoundingClientRect();
-    if (window.innerHeight - r.bottom < sugg.offsetHeight + 20 && r.top > window.innerHeight - r.bottom) sugg.classList.add('upward');
+    const vh = visibleHeight();
+    if (vh - r.bottom < sugg.offsetHeight + 20 && r.top > vh - r.bottom) sugg.classList.add('upward');
   });
   inp.addEventListener('keydown', e => {
     if (!sugg) return;
@@ -1178,6 +1328,16 @@ function setupAutocomplete(inp, i, j) {
     else if (e.key === 'Escape') close();
   });
   inp.addEventListener('blur', () => setTimeout(close, 200));
+  // Mobile : quand le clavier ouvre, on amène la cellule active dans la
+  // zone visible (sinon le clavier la masque). Délai pour laisser le
+  // visualViewport se mettre à jour.
+  inp.addEventListener('focus', () => {
+    if (window.matchMedia && !window.matchMedia('(max-width: 720px)').matches) return;
+    setTimeout(() => {
+      try { inp.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      catch (e) { inp.parentElement.scrollIntoView(); }
+    }, 320);
+  });
 }
 
 /* ─── Pseudo / Stats ──────────────────────────────────────── */
