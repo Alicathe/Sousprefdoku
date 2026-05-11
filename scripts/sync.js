@@ -18,7 +18,7 @@ if (!SHEET_ID) {
   process.exit(1);
 }
 
-const SHEET_BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+const SHEET_BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=`;
 
 /* ─── Parser CSV minimal (gestion des guillemets et virgules dans champs) ── */
 function parseCSV(text) {
@@ -55,10 +55,16 @@ async function fetchSheet(name) {
 }
 
 function rowsToObjects(rows, skipHelpRow = true) {
-  // Ligne 0 : clés techniques. Ligne 1 : libellés FR (à ignorer). Lignes 2+ : données.
+  // Deux cas possibles selon le comportement de Google Sheets gviz :
+  // - Cas A (clean) : ligne 0 = clés techniques seules, ligne 1 = libellés FR (à ignorer), lignes 2+ = données.
+  // - Cas B (merged) : ligne 0 = clés + libellés fusionnés ("i Code INSEE"), lignes 1+ = données directement.
+  // On détecte automatiquement quel cas en regardant si la première cellule contient un espace.
   if (rows.length < 2) return [];
-  const keys = rows[0].map(k => k.trim());
-  const dataStart = skipHelpRow ? 2 : 1;
+  const firstCell = (rows[0][0] || '').trim();
+  const isMerged = /\s/.test(firstCell);
+  // Dans tous les cas, on extrait juste le premier mot de chaque en-tête (= la clé technique)
+  const keys = rows[0].map(k => (k || '').trim().split(/\s+/)[0]);
+  const dataStart = isMerged ? 1 : (skipHelpRow ? 2 : 1);
   return rows.slice(dataStart).map(row => {
     const obj = {};
     keys.forEach((k, i) => { if (k) obj[k] = (row[i] || '').trim(); });
@@ -86,6 +92,8 @@ function buildCorpus(corpusRows) {
       dn: row.dn,
       r:  row.r,
       rn: row.rn,
+      lat: parseFloat(row.lat) || null,
+      lon: parseFloat(row.lon) || null,
       k,
     };
   }).filter(c => c.i && c.n);
@@ -160,6 +168,10 @@ function buildWikiOverrides(rows) {
         statut: cfg.discovery_filter_statut || 'souspref',
         exclude_flag: cfg.discovery_exclude_flag || 'plus_50k',
       },
+      corpus_filter: cfg.corpus_filter_statut
+        ? { statut: cfg.corpus_filter_statut }
+        : { statut: 'souspref' },
+      stats_endpoint: cfg.stats_endpoint || '',
     };
 
     fs.writeFileSync(path.join(__dirname, '..', 'data.json'),
