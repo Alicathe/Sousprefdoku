@@ -21,6 +21,15 @@
     --ocre-clair:  #D9B570;
     --vert:        #4A6B47;
     --bordeaux:    #8B3A3A;
+    /* Palette d'états renforcée : fonds plus teintés pour distinguer
+       valide/double/erreur d'un coup d'œil, sans s'éloigner de
+       l'esthétique cadastre/artisan. */
+    --bg-valid:    #C8DBC0;  /* vert sauge plus marqué que cream-ok */
+    --bg-dup:      #F2D9A0;  /* amber/ocre franc */
+    --bg-invalid:  #F0CDC8;  /* rose terre cuite franc */
+    --vert-fort:   #3F6B3C;  /* vert plus saturé pour border et icône */
+    --ocre-fort:   #B8801E;  /* ocre brûlé pour border et icône */
+    --rouge-fort:  #A53A3A;  /* rouge brique pour border et icône */
     --sepia:       #6B5847;
     --serif:       'Spectral', Georgia, 'Times New Roman', serif;
     --sans:        'Public Sans', system-ui, -apple-system, sans-serif;
@@ -245,9 +254,21 @@
     position: relative;
   }
   .cell.active-input { border-color: var(--ocre); }
-  .cell.valid     { background: var(--creme-ok);  border: 1.5px solid var(--vert); }
-  .cell.invalid   { background: var(--creme-clair); border: 1.5px solid var(--bordeaux); }
-  .cell.duplicate { background: var(--creme-dup); border: 1.5px solid var(--ocre); }
+  .cell.valid     {
+    background: var(--bg-valid);
+    border: 2px solid var(--vert-fort);
+    border-left-width: 5px;
+  }
+  .cell.invalid   {
+    background: var(--bg-invalid);
+    border: 2px solid var(--rouge-fort);
+    border-left-width: 5px;
+  }
+  .cell.duplicate {
+    background: var(--bg-dup);
+    border: 2px solid var(--ocre-fort);
+    border-left-width: 5px;
+  }
 
   .cell-empty-hint {
     font-family: var(--serif);
@@ -299,11 +320,11 @@
     font-size: 9px;
     color: var(--sepia);
   }
-  .cell-stats.invalid-stats { border-top-color: var(--bordeaux); }
-  .cell-stats.duplicate-stats { border-top-color: var(--ocre); color: var(--ocre); font-style: italic; }
+  .cell-stats.invalid-stats { border-top-color: var(--rouge-fort); color: var(--rouge-fort); }
+  .cell-stats.duplicate-stats { border-top-color: var(--ocre-fort); color: var(--ocre-fort); font-style: italic; font-weight: 500; }
   .cell-stats .your-attempts { font-weight: 500; }
-  .cell-stats .your-attempts.good { color: var(--vert); }
-  .cell-stats .your-attempts.bad { color: var(--bordeaux); }
+  .cell-stats .your-attempts.good { color: var(--vert-fort); }
+  .cell-stats .your-attempts.bad { color: var(--rouge-fort); }
   .cell .reset-btn {
     position: absolute;
     top: 3px;
@@ -359,9 +380,9 @@
     border-style: solid;
     flex-shrink: 0;
   }
-  .legend-swatch.valid     { background: var(--creme-ok); border-color: var(--vert); }
-  .legend-swatch.invalid   { background: var(--creme-clair); border-color: var(--bordeaux); }
-  .legend-swatch.duplicate { background: var(--creme-dup); border-color: var(--ocre); }
+  .legend-swatch.valid     { background: var(--bg-valid); border-color: var(--vert-fort); border-left: 3px solid var(--vert-fort); }
+  .legend-swatch.invalid   { background: var(--bg-invalid); border-color: var(--rouge-fort); border-left: 3px solid var(--rouge-fort); }
+  .legend-swatch.duplicate { background: var(--bg-dup); border-color: var(--ocre-fort); border-left: 3px solid var(--ocre-fort); }
 
   /* ─── Autocomplétion ─────────────────────────────────────── */
   .suggestions {
@@ -909,6 +930,7 @@ let CORPUS = [], CRITERIA = [], MUTEX_PAIRS = [], WIKI_OVERRIDES = {}, CONFIG = 
     CONFIG = criteria;
     const cf = criteria.corpus_filter || {};
     CORPUS = data.corpus.filter(c => !cf.statut || c.s === cf.statut);
+    enrichArticles(CORPUS);
     const compiled = criteria.criteria.map(compileCriterion);
     CRITERIA = compiled.filter(c => { const n = CORPUS.filter(x => c.test(x)).length; return n > 0 && n < CORPUS.length; });
     MUTEX_PAIRS = criteria.mutex_pairs || [];
@@ -918,6 +940,34 @@ let CORPUS = [], CRITERIA = [], MUTEX_PAIRS = [], WIKI_OVERRIDES = {}, CONFIG = 
     app.innerHTML = `<div class="splash error">Erreur de chargement : ${e.message}.<br>En local, lance un serveur : <code>python3 -m http.server</code>.</div>`;
   }
 })();
+
+/* ─── Enrichissement : articles définis ───────────────────
+   La source INSEE stocke certains noms sans leur article officiel
+   (« Rochelle » au lieu de « La Rochelle »). On les rétablit ici
+   pour l'affichage. Le matching include() reste tolérant : « la
+   rochelle » contient « rochelle », donc l'utilisateur peut taper
+   avec ou sans l'article. */
+const ARTICLE_OVERRIDES = {
+  'Rochelle': 'La Rochelle',
+  'Mans': 'Le Mans',
+  'Havre': 'Le Havre',
+  'Flèche': 'La Flèche',
+  'Andelys': 'Les Andelys',
+  "Sables-d'Olonne": "Les Sables-d'Olonne",
+  'Blanc': 'Le Blanc',
+  'Raincy': 'Le Raincy',
+  'Marin': 'Le Marin',
+  'Trinité': 'La Trinité',
+};
+function enrichArticles(corpus) {
+  for (const c of corpus) {
+    const fullName = ARTICLE_OVERRIDES[c.n];
+    if (fullName) {
+      c.n = fullName;
+      c.nn = normalize(fullName);
+    }
+  }
+}
 
 function compileCriterion(c) {
   const out = { id: c.id, label: c.label, family: c.family, type: c.type };
@@ -1220,10 +1270,10 @@ function renderCell(i, j) {
   el.classList.add(s);
   const guess = CORPUS.find(c => c.i === insee);
   const icon = s === 'valid'
-    ? `<svg class="cell-icon" width="14" height="14" viewBox="0 0 14 14"><path d="M2,7 L5,10 L12,3" stroke="#4A6B47" stroke-width="1.5" fill="none"/></svg>`
+    ? `<svg class="cell-icon" width="16" height="16" viewBox="0 0 14 14"><path d="M2,7 L5,10 L12,3" stroke="#3F6B3C" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`
     : s === 'invalid'
-    ? `<svg class="cell-icon" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#8B3A3A" stroke-width="0.8"/><line x1="4" y1="4" x2="10" y2="10" stroke="#8B3A3A" stroke-width="1.2"/><line x1="10" y1="4" x2="4" y2="10" stroke="#8B3A3A" stroke-width="1.2"/></svg>`
-    : `<svg class="cell-icon" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#C19A4B" stroke-width="0.8"/><path d="M4,7 A3,3 0 1 1 9,9" stroke="#C19A4B" stroke-width="1.2" fill="none"/><polygon points="9,9 11,7 11,11" fill="#C19A4B"/></svg>`;
+    ? `<svg class="cell-icon" width="16" height="16" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#A53A3A" stroke-width="1.2"/><line x1="4" y1="4" x2="10" y2="10" stroke="#A53A3A" stroke-width="1.6" stroke-linecap="round"/><line x1="10" y1="4" x2="4" y2="10" stroke="#A53A3A" stroke-width="1.6" stroke-linecap="round"/></svg>`
+    : `<svg class="cell-icon" width="16" height="16" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#B8801E" stroke-width="1.2"/><path d="M4,7 A3,3 0 1 1 9,9" stroke="#B8801E" stroke-width="1.6" fill="none"/><polygon points="9,9 11,7 11,11" fill="#B8801E"/></svg>`;
   // Boussole si valide ET critère géographique
   let compass = '';
   if (s === 'valid') {
@@ -1404,12 +1454,22 @@ function setupAutocomplete(inp, i, j) {
     // donne l'impression que le champ vide propose déjà des villes).
     clearAllSuggestions();
     sugg = null;
-    // Mobile : amène la cellule active dans la zone visible (sinon le
-    // clavier la masque). Délai pour laisser visualViewport s'actualiser.
+    // Mobile : on laisse le navigateur gérer nativement le scroll vers
+    // l'input focus (iOS Safari et Android Chrome le font très bien
+    // depuis longtemps). On n'intervient avec scrollIntoView qu'en
+    // dernier recours (block:'nearest' = scroll minimal, pas de
+    // recentrage agressif), uniquement si la cellule reste hors viewport
+    // après que le clavier soit ouvert. Préserve la visibilité de
+    // l'en-tête de colonne au-dessus.
     if (!isMobile()) return;
     setTimeout(() => {
-      try { inp.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-      catch (e) { inp.parentElement.scrollIntoView(); }
+      try {
+        const r = inp.parentElement.getBoundingClientRect();
+        const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+        if (r.top < 0 || r.bottom > vh) {
+          inp.parentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      } catch (e) { /* fallback silencieux */ }
     }, 320);
   });
 }
