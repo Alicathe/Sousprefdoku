@@ -1,0 +1,1676 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sudoku des Sous-préfectures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;1,400;1,500&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --encre:       #1F2E4A;
+    --ardoise:     #2C3E5B;
+    --bleu-pale:   #7B91B3;
+    --creme:       #F8F5EE;
+    --creme-clair: #FBF9F4;
+    --creme-vieux: #EFE8D5;
+    --creme-ok:    #F0EAD8;
+    --creme-dup:   #F5E8DC;
+    --ocre:        #C19A4B;
+    --ocre-clair:  #D9B570;
+    --vert:        #4A6B47;
+    --bordeaux:    #8B3A3A;
+    --sepia:       #6B5847;
+    --serif:       'Spectral', Georgia, 'Times New Roman', serif;
+    --sans:        'Public Sans', system-ui, -apple-system, sans-serif;
+    --mono:        'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    font-family: var(--sans);
+    color: var(--encre);
+    background: var(--creme);
+    line-height: 1.55;
+    font-feature-settings: "kern" 1;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* ─── Tactile ─────────────────────────────────────────────
+     Anti-zoom iOS Safari : tout input doit être ≥ 16px sur
+     les appareils tactiles. Sur desktop (souris) on laisse les
+     règles spécifiques s'exprimer (le placeholder ne sera pas
+     tronqué dans une cellule étroite). */
+  @media (hover: none) and (pointer: coarse) {
+    input, select, textarea {
+      font-size: 16px;
+    }
+    .cell input { font-size: 16px; }
+    .pseudo-input { font-size: 16px; }
+  }
+  button, a, .cell, .suggestions li, .gallery-day, .pseudo-badge,
+  .reset-btn, .stats-btn, .btn {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .page {
+    max-width: 900px;
+    margin: 24px auto;
+    padding: 0 14px;
+  }
+  .cartouche {
+    background: var(--creme);
+    border: 1px solid var(--encre);
+    padding: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cartouche-inner {
+    border: 0.5px solid var(--ocre);
+    padding: 24px 22px;
+    position: relative;
+  }
+  .topo-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .cartouche-inner > * { position: relative; z-index: 1; }
+
+  /* ─── Header ─────────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--encre);
+    gap: 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-logo svg { display: block; }
+  .brand-title {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--encre);
+    letter-spacing: 0;
+    line-height: 1;
+  }
+  .brand-title .lettrine {
+    font-size: 36px;
+    color: var(--ocre);
+    font-style: italic;
+    line-height: 0.8;
+    margin-right: 2px;
+    font-weight: 500;
+  }
+  .brand-subtitle {
+    margin: 5px 0 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--sepia);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .compass { flex-shrink: 0; opacity: 0.85; }
+
+  /* ─── Meta-bar ───────────────────────────────────────────── */
+  .meta-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--sepia);
+    padding: 11px 0;
+    border-bottom: 0.5px solid var(--ocre);
+    letter-spacing: 0.04em;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .meta-progress { color: var(--vert); font-weight: 500; }
+  .meta-timer { font-variant-numeric: tabular-nums; color: var(--vert); }
+  .pseudo-badge {
+    background: rgba(193, 154, 75, 0.08);
+    border: 0.5px solid var(--ocre);
+    padding: 3px 9px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--sepia);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .pseudo-badge strong { color: var(--encre); font-weight: 500; }
+  .pseudo-badge:hover { border-color: var(--encre); }
+  .pseudo-badge.no-pseudo { background: rgba(139, 58, 58, 0.06); border-color: var(--bordeaux); color: var(--bordeaux); }
+  .stats-btn {
+    background: white;
+    color: var(--encre);
+    border: 0.5px solid var(--encre);
+    padding: 4px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+  }
+  .stats-btn:hover { background: var(--encre); color: var(--creme); }
+  .puzzle-date {
+    margin: 12px 0 6px;
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--sepia);
+    font-size: 13px;
+  }
+
+  /* ─── Grille + side panel ────────────────────────────────── */
+  .game-area {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 18px;
+    margin-top: 14px;
+    align-items: start;
+  }
+  .grid-shell {
+    background: rgba(251, 249, 244, 0.92);
+    border: 1.5px solid var(--encre);
+    padding: 12px;
+    position: relative;
+  }
+  .grid-shell::before, .grid-shell::after,
+  .grid-shell > .corner-bl, .grid-shell > .corner-br {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+  }
+  .grid-shell::before {
+    top: -7px; left: -7px;
+    border-top: 1.5px solid var(--ocre);
+    border-left: 1.5px solid var(--ocre);
+  }
+  .grid-shell::after {
+    top: -7px; right: -7px;
+    border-top: 1.5px solid var(--ocre);
+    border-right: 1.5px solid var(--ocre);
+  }
+  .grid-shell > .corner-bl {
+    bottom: -7px; left: -7px;
+    border-bottom: 1.5px solid var(--ocre);
+    border-left: 1.5px solid var(--ocre);
+  }
+  .grid-shell > .corner-br {
+    bottom: -7px; right: -7px;
+    border-bottom: 1.5px solid var(--ocre);
+    border-right: 1.5px solid var(--ocre);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 110px repeat(3, 1fr);
+    gap: 4px;
+  }
+  .corner-empty { background: transparent; }
+  .col-header, .row-header {
+    background: var(--encre);
+    color: var(--creme);
+    padding: 8px 8px;
+    font-family: var(--serif);
+    font-size: 11.5px;
+    font-style: italic;
+    line-height: 1.2;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .row-header { text-align: left; justify-content: flex-start; padding-left: 10px; }
+  .cell {
+    background: var(--creme-clair);
+    border: 1.5px dashed var(--sepia);
+    padding: 8px 9px;
+    min-height: 84px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+  }
+  .cell.active-input { border-color: var(--ocre); }
+  .cell.valid     { background: var(--creme-ok);  border: 1.5px solid var(--vert); }
+  .cell.invalid   { background: var(--creme-clair); border: 1.5px solid var(--bordeaux); }
+  .cell.duplicate { background: var(--creme-dup); border: 1.5px solid var(--ocre); }
+
+  .cell-empty-hint {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--sepia);
+    font-size: 11px;
+    text-align: center;
+    margin: auto;
+  }
+  .cell input {
+    width: 100%;
+    padding: 7px 8px;
+    font-size: 13px; /* surchargé à 16px sur tactile via @media hover:none */
+    font-family: var(--sans);
+    border: 0.5px solid var(--ocre);
+    background: white;
+    color: var(--encre);
+    margin: auto 0;
+  }
+  .cell input:focus { outline: 1.5px solid var(--ocre); outline-offset: -1px; }
+
+  .cell-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .cell-info { flex: 1; min-width: 0; }
+  .cell-name {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--encre);
+    line-height: 1.2;
+  }
+  .cell-dept {
+    margin: 1px 0 0;
+    font-family: var(--mono);
+    font-size: 8.5px;
+    color: var(--sepia);
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+  }
+  .cell-icon { flex-shrink: 0; }
+  .cell-stats {
+    margin-top: 6px;
+    padding-top: 3px;
+    border-top: 1px dotted var(--ocre);
+    font-size: 9px;
+    color: var(--sepia);
+  }
+  .cell-stats.invalid-stats { border-top-color: var(--bordeaux); }
+  .cell-stats.duplicate-stats { border-top-color: var(--ocre); color: var(--ocre); font-style: italic; }
+  .cell-stats .your-attempts { font-weight: 500; }
+  .cell-stats .your-attempts.good { color: var(--vert); }
+  .cell-stats .your-attempts.bad { color: var(--bordeaux); }
+  .cell .reset-btn {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 16px;
+    height: 16px;
+    border: 0.5px solid var(--sepia);
+    background: white;
+    color: var(--sepia);
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+    padding: 0;
+    display: none;
+  }
+  .cell.valid .reset-btn,
+  .cell.invalid .reset-btn,
+  .cell.duplicate .reset-btn { display: block; }
+  .cell .reset-btn:hover { border-color: var(--bordeaux); color: var(--bordeaux); }
+
+  /* ─── Side panel ─────────────────────────────────────────── */
+  .side-panel { display: flex; flex-direction: column; gap: 12px; }
+  .panel {
+    background: rgba(251, 249, 244, 0.92);
+    border: 0.5px solid var(--ocre);
+    padding: 10px 12px;
+  }
+  .panel-title {
+    margin: 0 0 8px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--sepia);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-align: center;
+    border-bottom: 0.5px solid var(--ocre);
+    padding-bottom: 5px;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--serif);
+    font-size: 10.5px;
+    color: var(--encre);
+    margin-bottom: 3px;
+  }
+  .legend-row:last-child { margin-bottom: 0; }
+  .legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-width: 1px;
+    border-style: solid;
+    flex-shrink: 0;
+  }
+  .legend-swatch.valid     { background: var(--creme-ok); border-color: var(--vert); }
+  .legend-swatch.invalid   { background: var(--creme-clair); border-color: var(--bordeaux); }
+  .legend-swatch.duplicate { background: var(--creme-dup); border-color: var(--ocre); }
+
+  /* ─── Autocomplétion ─────────────────────────────────────── */
+  .suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: white;
+    border: 1px solid var(--encre);
+    border-top: none;
+    max-height: 220px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(31, 46, 74, 0.15);
+  }
+  .suggestions li {
+    padding: 7px 10px;
+    cursor: pointer;
+    border-bottom: 0.5px solid var(--creme);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .suggestions li:hover, .suggestions li.active { background: var(--creme-clair); }
+  .suggestions li .name { font-family: var(--serif); }
+  .suggestions li .dept { color: var(--sepia); font-family: var(--mono); font-size: 10px; }
+  .suggestions.upward {
+    top: auto;
+    bottom: 100%;
+    border-top: 1px solid var(--encre);
+    border-bottom: none;
+    box-shadow: 0 -4px 12px rgba(31, 46, 74, 0.15);
+  }
+
+  /* ─── Sections sous la grille ────────────────────────────── */
+  .section {
+    margin-top: 22px;
+    background: rgba(251, 249, 244, 0.92);
+    border: 1px solid var(--encre);
+    padding: 14px 18px;
+  }
+  .section.accent-left {
+    border: none;
+    border-left: 3px solid var(--ocre);
+    padding-left: 14px;
+  }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 0.5px solid var(--ocre);
+  }
+  .section-title {
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--encre);
+    font-weight: 500;
+  }
+  .section-meta { font-family: var(--mono); font-size: 10px; color: var(--sepia); letter-spacing: 0.1em; }
+  .section-tag {
+    margin: 0 0 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ocre);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  /* ─── Endgame ────────────────────────────────────────────── */
+  .endgame {
+    margin-top: 18px;
+    background: rgba(251, 249, 244, 0.92);
+    border: 1px solid var(--encre);
+    border-left: 4px solid var(--vert);
+    padding: 16px 20px;
+  }
+  .endgame h2 { margin: 0 0 6px; font-family: var(--serif); color: var(--encre); font-size: 20px; font-weight: 500; }
+  .endgame p { margin: 0 0 12px; font-family: var(--sans); font-size: 14px; color: var(--encre); }
+  .btn {
+    background: var(--encre);
+    color: var(--creme);
+    border: 1px solid var(--encre);
+    padding: 8px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .btn:hover { background: var(--ardoise); }
+  .btn-secondary { background: white; color: var(--encre); }
+  .btn-secondary:hover { background: var(--creme-clair); }
+  .pseudo-cta {
+    background: rgba(139, 58, 58, 0.06);
+    border-left: 3px solid var(--bordeaux);
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--encre);
+  }
+  .pseudo-cta button { margin-top: 6px; }
+
+  /* ─── Leaderboard inline ─────────────────────────────────── */
+  .leaderboard-inline { font-family: var(--serif); font-size: 13px; }
+  .leaderboard-row {
+    display: grid;
+    grid-template-columns: 42px 1fr 90px 70px;
+    gap: 12px;
+    padding: 6px 8px;
+    align-items: center;
+    border-bottom: 0.5px solid var(--creme-vieux);
+  }
+  .leaderboard-row.you {
+    background: var(--creme-ok);
+    border: 1px solid var(--vert);
+    border-bottom: 1px solid var(--vert);
+    margin: 1px 0;
+  }
+  .leaderboard-row.you .lb-pseudo { font-weight: 500; }
+  .lb-rank { font-family: var(--mono); color: var(--sepia); font-size: 11px; text-align: center; }
+  .leaderboard-row.you .lb-rank { color: var(--vert); font-weight: 500; }
+  .lb-pseudo { color: var(--encre); }
+  .lb-attempts { font-family: var(--mono); color: var(--vert); font-weight: 500; font-size: 11px; text-align: right; }
+  .lb-time { font-family: var(--mono); color: var(--sepia); font-size: 11px; text-align: right; font-variant-numeric: tabular-nums; }
+  .lb-footer {
+    margin: 10px 0 0;
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 11px;
+    color: var(--sepia);
+  }
+
+  /* ─── Découverte ─────────────────────────────────────────── */
+  .discovery-card { display: flex; gap: 14px; align-items: flex-start; }
+  .discovery-card img { width: 120px; height: 120px; object-fit: cover; flex-shrink: 0; border: 0.5px solid var(--ocre); background: var(--creme-vieux); }
+  .discovery-card .body { flex: 1; min-width: 0; }
+  .discovery-card .city-name { margin: 0 0 2px; font-family: var(--serif); font-size: 14px; font-weight: 500; color: var(--encre); }
+  .discovery-card .city-meta { margin: 0 0 6px; font-family: var(--mono); font-size: 10px; color: var(--sepia); }
+  .discovery-card .extract {
+    margin: 0 0 8px;
+    font-family: var(--serif);
+    font-size: 12px;
+    color: var(--encre);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .discovery-card .read-more { font-family: var(--mono); font-size: 10px; color: var(--encre); text-decoration: none; }
+  .discovery-card .read-more:hover { text-decoration: underline; }
+  .discovery-empty { font-family: var(--serif); font-style: italic; color: var(--sepia); padding: 8px 0; font-size: 12px; }
+
+  /* ─── Galerie ────────────────────────────────────────────── */
+  .gallery-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .gallery-day { text-align: center; cursor: pointer; }
+  .gallery-mini {
+    background: var(--creme-clair);
+    border: 0.5px solid var(--vert);
+    padding: 4px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5px;
+  }
+  .gallery-mini.partial { border-color: var(--ocre); }
+  .gallery-mini.abandoned { border-color: var(--bordeaux); opacity: 0.6; }
+  .gallery-mini.empty { border: 0.5px dashed var(--sepia); opacity: 0.4; }
+  .gallery-mini > div { aspect-ratio: 1; background: var(--creme-ok); }
+  .gallery-mini > div.dup { background: var(--creme-dup); }
+  .gallery-mini > div.empty { background: var(--creme-clair); border: 0.5px dashed var(--bordeaux); }
+  .gallery-day .date { margin: 4px 0 0; font-family: var(--mono); font-size: 9px; color: var(--encre); }
+  .gallery-day .score { margin: 0; font-family: var(--serif); font-style: italic; font-size: 9.5px; color: var(--vert); }
+  .gallery-day .score.abandon { color: var(--bordeaux); }
+  .gallery-day .score.empty { color: var(--sepia); }
+  .gallery-footer {
+    margin: 10px 0 0;
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 10.5px;
+    color: var(--sepia);
+  }
+
+  /* ─── Modale stats ──────────────────────────────────────── */
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(31, 46, 74, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    padding: 20px;
+  }
+  .modal {
+    background: var(--creme);
+    max-width: 460px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 22px 24px;
+    border: 1px solid var(--encre);
+    border-top: 4px solid var(--ocre);
+  }
+  .modal h2 {
+    margin: 0 0 4px;
+    font-family: var(--serif);
+    color: var(--encre);
+    font-size: 22px;
+    font-weight: 500;
+  }
+  .modal h2 .close {
+    float: right;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--sepia);
+    padding: 0;
+    line-height: 1;
+  }
+  .modal h2 .close:hover { color: var(--encre); }
+  .modal h3 {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    margin: 16px 0 8px;
+    color: var(--sepia);
+    font-weight: 500;
+  }
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-cell {
+    background: var(--creme-clair);
+    border-left: 3px solid var(--ocre);
+    padding: 10px 12px;
+  }
+  .stat-cell .label { font-family: var(--mono); font-size: 10px; color: var(--sepia); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+  .stat-cell .value { font-family: var(--serif); font-size: 24px; font-weight: 500; color: var(--encre); line-height: 1.1; font-variant-numeric: oldstyle-nums; }
+  .stat-cell .value small { font-size: 12px; color: var(--sepia); font-weight: 400; font-style: italic; }
+  .histogram { font-family: var(--mono); font-size: 11px; }
+  .histogram .bar-row { display: grid; grid-template-columns: 40px 1fr 30px; align-items: center; gap: 8px; margin-bottom: 3px; }
+  .histogram .num { color: var(--sepia); font-size: 10px; text-align: right; }
+  .histogram .bar { height: 11px; background: var(--creme-vieux); }
+  .histogram .bar-fill { height: 100%; background: var(--encre); }
+  .histogram .bar-fill.you { background: var(--vert); }
+  .histogram .count { font-size: 10px; color: var(--sepia); }
+  .percentile-card {
+    background: var(--encre);
+    color: var(--creme);
+    padding: 14px;
+    margin: 10px 0;
+    text-align: center;
+  }
+  .percentile-card .big { font-family: var(--serif); font-size: 30px; font-weight: 500; line-height: 1; margin-bottom: 4px; font-variant-numeric: oldstyle-nums; }
+  .percentile-card .legend { font-family: var(--mono); font-size: 11px; opacity: 0.9; }
+  .stats-empty { font-family: var(--serif); font-style: italic; color: var(--sepia); padding: 8px 0; font-size: 12px; }
+  .global-error { color: var(--bordeaux); font-family: var(--mono); font-size: 11px; }
+
+  /* ─── Pseudo prompt ──────────────────────────────────────── */
+  .pseudo-input { width: 100%; padding: 10px 12px; font-family: var(--serif); font-size: 14px; border: 1.5px solid var(--ocre); margin: 6px 0; background: var(--creme-clair); }
+  .pseudo-input:focus { outline: none; border-color: var(--encre); }
+  .pseudo-hint { font-family: var(--mono); color: var(--sepia); font-size: 10px; margin-bottom: 8px; }
+  .pseudo-error { font-family: var(--mono); color: var(--bordeaux); font-size: 11px; margin-top: 4px; }
+
+  /* ─── Toast ─────────────────────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--vert);
+    color: var(--creme);
+    padding: 10px 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    z-index: 400;
+    letter-spacing: 0.04em;
+    animation: fade 2s forwards;
+  }
+  @keyframes fade { 0% { opacity: 0; } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* ─── Footer ─────────────────────────────────────────────── */
+  .footer {
+    margin: 18px 0 0;
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 11px;
+    color: var(--sepia);
+    padding-top: 12px;
+    border-top: 0.5px solid var(--ocre);
+  }
+
+  /* ─── Splash ─────────────────────────────────────────────── */
+  .splash { padding: 60px 20px; text-align: center; font-family: var(--serif); font-style: italic; color: var(--sepia); font-size: 14px; }
+  .splash.error { color: var(--bordeaux); }
+  .splash code { font-family: var(--mono); font-size: 12px; background: var(--creme-clair); padding: 2px 6px; }
+
+  /* ─── Responsive ───────────────────────────────────────────
+     Stratégie : sous 720px on récupère de la place horizontale
+     (paddings agressifs, en-têtes colonnes verticaux), on
+     remonte les fontes intracellulaires, on agrandit les touch
+     targets, et on traite l'autocomplétion comme un menu
+     élargi. Sous 380px (iPhone SE / petits Android), on serre
+     encore d'un cran. */
+  @media (max-width: 720px) {
+    /* Conteneurs : on récupère 12-16px de gouttière */
+    .page { margin: 8px auto; padding: 0 6px; }
+    .cartouche { padding: 4px; }
+    .cartouche-inner { padding: 14px 12px; }
+
+    /* Header : empilé, plus compact */
+    header { flex-wrap: wrap; gap: 8px; padding-bottom: 12px; }
+    .brand { gap: 10px; }
+    .brand-title { font-size: 19px; }
+    .brand-title .lettrine { font-size: 30px; }
+    .brand-subtitle { font-size: 9px; letter-spacing: 0.14em; }
+    .compass { display: none; } /* boussole décorative — gain d'espace */
+
+    /* Meta-bar : taille raisonnable, gap serré */
+    .meta-bar { font-size: 11px; padding: 9px 0; gap: 8px; }
+    .puzzle-date { font-size: 12px; margin: 10px 0 4px; }
+
+    /* Game area : empilé (grille puis side-panel) */
+    .game-area { grid-template-columns: 1fr; gap: 12px; margin-top: 10px; }
+    .grid-shell { padding: 8px; }
+
+    /* Grille : row-header réduit, headers horizontaux compacts.
+       Le min-content sur la 1re ligne laisse l'en-tête s'enrouler. */
+    .grid {
+      grid-template-columns: 78px repeat(3, 1fr);
+      gap: 4px;
+    }
+    .col-header {
+      font-size: 10.5px;
+      padding: 5px 4px;
+      line-height: 1.18;
+      hyphens: auto;
+      -webkit-hyphens: auto;
+    }
+    .row-header {
+      font-size: 10.5px;
+      padding: 6px 7px;
+      line-height: 1.18;
+      hyphens: auto;
+      -webkit-hyphens: auto;
+    }
+
+    /* Cellule : plus haute, plus respirante, fontes lisibles */
+    .cell {
+      min-height: 104px;
+      padding: 8px 9px;
+    }
+    .cell-name { font-size: 13.5px; line-height: 1.2; }
+    .cell-dept { font-size: 10px; margin-top: 2px; }
+    .cell-stats { font-size: 10.5px; margin-top: 5px; padding-top: 4px; }
+    .cell-empty-hint { font-size: 12px; }
+
+    /* Reset btn : touch target acceptable (32x32 ~) */
+    .cell .reset-btn {
+      width: 28px;
+      height: 28px;
+      font-size: 16px;
+      top: 2px;
+      right: 2px;
+    }
+
+    /* Suggestions d'autocomplétion en mode "bottom-sheet" sur mobile :
+       feuille flottante ancrée juste au-dessus du clavier, plein écran
+       horizontalement. Le `bottom` exact est fixé en JS via
+       visualViewport pour suivre les ouvertures/fermetures de clavier. */
+    .suggestions {
+      position: fixed;
+      top: auto;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      z-index: 1000;
+      max-height: 50vh;
+      border: 1.5px solid var(--encre);
+      border-radius: 2px;
+      box-shadow: 0 -10px 30px rgba(31, 46, 74, 0.28);
+    }
+    .suggestions.upward {
+      /* en mobile on ignore le flip — la position est toujours fixed-bottom */
+      top: auto;
+      bottom: 8px;
+      border: 1.5px solid var(--encre);
+      box-shadow: 0 -10px 30px rgba(31, 46, 74, 0.28);
+    }
+    .suggestions li {
+      padding: 13px 14px;
+      font-size: 15px;
+      border-bottom: 0.5px solid var(--creme-vieux);
+    }
+    .suggestions li:last-child { border-bottom: none; }
+    .suggestions li .dept { font-size: 12px; }
+    .suggestions li.active { background: var(--creme-ok); }
+
+    /* Side panel sous la grille : panels plus aérés */
+    .panel { padding: 12px 14px; }
+    .legend-row { font-size: 12px; gap: 8px; }
+    .legend-swatch { width: 12px; height: 12px; }
+
+    /* Boutons : touch target conforme */
+    .btn { padding: 11px 18px; font-size: 12px; }
+    .stats-btn { padding: 7px 12px; font-size: 12px; }
+    .pseudo-badge { padding: 6px 10px; font-size: 12px; }
+
+    /* Section sous la grille */
+    .section { padding: 12px 14px; margin-top: 16px; }
+    .section-title { font-size: 14px; }
+
+    /* Gallery hebdo */
+    .gallery-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+
+    /* Leaderboard : colonnes serrées */
+    .leaderboard-row {
+      grid-template-columns: 32px 1fr 70px 56px;
+      gap: 6px;
+      font-size: 12.5px;
+      padding: 8px 4px;
+    }
+    .lb-rank, .lb-attempts, .lb-time { font-size: 11px; }
+
+    /* Discovery card : empilé */
+    .discovery-card { flex-direction: column; }
+    .discovery-card img { width: 100%; height: 160px; }
+
+    /* Modale stats : usage maximal de l'écran */
+    .modal-bg { padding: 8px; align-items: flex-start; padding-top: 16px; }
+    .modal { padding: 18px 16px; max-height: calc(100vh - 32px); }
+    .modal h2 { font-size: 19px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-cell { padding: 9px 10px; }
+    .stat-cell .value { font-size: 20px; }
+    .percentile-card .big { font-size: 26px; }
+
+    /* Endgame */
+    .endgame { padding: 14px 16px; }
+    .endgame h2 { font-size: 18px; }
+    .endgame p { font-size: 13.5px; }
+  }
+
+  @media (max-width: 380px) {
+    /* iPhone SE / petits Android : on serre encore */
+    .cartouche-inner { padding: 12px 10px; }
+    .grid { grid-template-columns: 64px repeat(3, 1fr); gap: 3px; }
+    .col-header { font-size: 10px; max-height: 34px; }
+    .row-header { font-size: 10px; padding: 5px 6px; }
+    .cell { min-height: 96px; padding: 7px 7px; }
+    .cell-name { font-size: 13px; }
+    .cell-dept { font-size: 9.5px; }
+    .gallery-grid { grid-template-columns: repeat(3, 1fr); }
+    .brand-title { font-size: 17px; }
+    .brand-title .lettrine { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="cartouche">
+    <svg class="topo-bg" preserveAspectRatio="xMidYMid slice" viewBox="0 0 680 1400" aria-hidden="true">
+      <ellipse cx="100" cy="120" rx="120" ry="60" fill="none" stroke="#C19A4B" stroke-width="0.5" opacity="0.15"/>
+      <ellipse cx="100" cy="120" rx="85" ry="42" fill="none" stroke="#C19A4B" stroke-width="0.5" opacity="0.15"/>
+      <ellipse cx="100" cy="120" rx="55" ry="27" fill="none" stroke="#C19A4B" stroke-width="0.5" opacity="0.15"/>
+      <ellipse cx="560" cy="340" rx="160" ry="85" fill="none" stroke="#C19A4B" stroke-width="0.5" opacity="0.15"/>
+      <ellipse cx="560" cy="340" rx="115" ry="60" fill="none" stroke="#C19A4B" stroke-width="0.5" opacity="0.15"/>
+      <ellipse cx="560" cy="340" rx="78" ry="42" fill="none" stroke="#C19A4B" stroke-width="0.5" opacity="0.15"/>
+      <ellipse cx="200" cy="920" rx="200" ry="100" fill="none" stroke="#C19A4B" stroke-width="0.5" opacity="0.15"/>
+      <ellipse cx="200" cy="920" rx="150" ry="75" fill="none" stroke="#C19A4B" stroke-width="0.5" opacity="0.15"/>
+      <ellipse cx="200" cy="920" rx="95" ry="48" fill="none" stroke="#C19A4B" stroke-width="0.5" opacity="0.15"/>
+      <path d="M 0,520 Q 170,500 340,525 T 680,540" fill="none" stroke="#7B91B3" stroke-width="0.4" opacity="0.22"/>
+      <path d="M 0,1200 Q 200,1180 400,1205 T 680,1200" fill="none" stroke="#7B91B3" stroke-width="0.4" opacity="0.22"/>
+    </svg>
+    <div class="cartouche-inner">
+      <header>
+        <div class="brand">
+          <div class="brand-logo">
+            <svg width="58" height="58" viewBox="0 0 58 58" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <polygon points="29,4 51,16 51,42 29,54 7,42 7,16" fill="#FBF9F4" stroke="#1F2E4A" stroke-width="1.5"/>
+              <polygon points="29,8 47,18 47,40 29,50 11,40 11,18" fill="none" stroke="#C19A4B" stroke-width="0.5" stroke-dasharray="2,2"/>
+              <line x1="29" y1="12" x2="29" y2="46" stroke="#1F2E4A" stroke-width="0.5"/>
+              <line x1="13" y1="29" x2="45" y2="29" stroke="#1F2E4A" stroke-width="0.5"/>
+              <line x1="20" y1="17" x2="20" y2="41" stroke="#1F2E4A" stroke-width="0.5"/>
+              <line x1="38" y1="17" x2="38" y2="41" stroke="#1F2E4A" stroke-width="0.5"/>
+              <line x1="16" y1="22" x2="42" y2="22" stroke="#1F2E4A" stroke-width="0.5"/>
+              <line x1="16" y1="36" x2="42" y2="36" stroke="#1F2E4A" stroke-width="0.5"/>
+              <rect x="25" y="25" width="8" height="8" fill="#C19A4B"/>
+            </svg>
+          </div>
+          <div>
+            <p class="brand-title"><span class="lettrine">S</span>udoku des Sous-préfectures</p>
+            <p class="brand-subtitle">Édition quotidienne · grille du jour</p>
+          </div>
+        </div>
+        <svg class="compass" width="46" height="46" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="25" cy="25" r="22" fill="none" stroke="#1F2E4A" stroke-width="0.5"/>
+          <circle cx="25" cy="25" r="19" fill="none" stroke="#1F2E4A" stroke-width="0.5" stroke-dasharray="1,2"/>
+          <polygon points="25,4 22,25 25,22 28,25" fill="#8B3A3A"/>
+          <polygon points="25,46 22,25 25,28 28,25" fill="#1F2E4A"/>
+          <polygon points="4,25 25,22 22,25 25,28" fill="#1F2E4A" opacity="0.7"/>
+          <polygon points="46,25 25,22 28,25 25,28" fill="#1F2E4A" opacity="0.7"/>
+          <circle cx="25" cy="25" r="1.5" fill="#C19A4B"/>
+        </svg>
+      </header>
+
+      <div id="app"><div class="splash">Chargement des données…</div></div>
+
+      <p class="footer">Données INSEE 2022 · Centroïdes France-GeoJSON · Altitudes sql.sh + Wikipédia · Licence Ouverte</p>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ─── Chargement ──────────────────────────────────────────── */
+async function loadJSON(path) {
+  const r = await fetch(path, { cache: 'no-cache' });
+  if (!r.ok) throw new Error(path + ' (HTTP ' + r.status + ')');
+  return r.json();
+}
+let CORPUS = [], CRITERIA = [], MUTEX_PAIRS = [], WIKI_OVERRIDES = {}, CONFIG = {};
+
+(async function init() {
+  const app = document.getElementById('app');
+  try {
+    const [data, criteria] = await Promise.all([loadJSON('./data.json'), loadJSON('./criteria.json')]);
+    CONFIG = criteria;
+    const cf = criteria.corpus_filter || {};
+    CORPUS = data.corpus.filter(c => !cf.statut || c.s === cf.statut);
+    const compiled = criteria.criteria.map(compileCriterion);
+    CRITERIA = compiled.filter(c => { const n = CORPUS.filter(x => c.test(x)).length; return n > 0 && n < CORPUS.length; });
+    MUTEX_PAIRS = criteria.mutex_pairs || [];
+    WIKI_OVERRIDES = criteria.wiki_title_overrides || {};
+    renderApp();
+  } catch (e) {
+    app.innerHTML = `<div class="splash error">Erreur de chargement : ${e.message}.<br>En local, lance un serveur : <code>python3 -m http.server</code>.</div>`;
+  }
+})();
+
+function compileCriterion(c) {
+  const out = { id: c.id, label: c.label, family: c.family, type: c.type };
+  if (c.type === 'flag') out.test = x => !!x.k[c.flag];
+  else if (c.type === 'field_eq') out.test = x => x[c.field] === c.value;
+  else if (c.type === 'cp_first') out.test = x => cpFirst(x) === c.value;
+  else out.test = () => false;
+  return out;
+}
+function cpFirst(c) { if (c.d === '2A' || c.d === '2B') return '2'; return c.d[0]; }
+
+/* ─── Helpers ─────────────────────────────────────────────── */
+function todayParis() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date()); }
+function normalize(s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[-']/g, ' '); }
+function mulberry32(seed) {
+  return function() { let t = seed += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+
+/* ─── Générateur ──────────────────────────────────────────── */
+function pickGrid(seed, excludedIds) {
+  const rng = mulberry32(seed);
+  const isMutex = (a, b) => MUTEX_PAIRS.some(p => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a));
+  const sample = (arr, n) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); };
+  const minCands = CONFIG.min_candidates_per_cell || 5;
+  const maxFam = CONFIG.max_per_family || 2;
+  const pool = excludedIds && excludedIds.size ? CRITERIA.filter(c => !excludedIds.has(c.id)) : CRITERIA;
+  for (let attempt = 0; attempt < 20000; attempt++) {
+    const six = sample(pool, 6);
+    const ids = six.map(c => c.id);
+    let mutexC = false;
+    for (let i = 0; i < 6 && !mutexC; i++) for (let j = i + 1; j < 6 && !mutexC; j++) if (isMutex(ids[i], ids[j])) mutexC = true;
+    if (mutexC) continue;
+    const famCount = {};
+    six.forEach(c => { famCount[c.family] = (famCount[c.family] || 0) + 1; });
+    if (Object.values(famCount).some(v => v > maxFam)) continue;
+    const rows = six.slice(0, 3), cols = six.slice(3, 6);
+    const cellCands = [[], [], []];
+    let ok = true;
+    for (let i = 0; i < 3 && ok; i++) for (let j = 0; j < 3 && ok; j++) {
+      const cands = CORPUS.filter(c => rows[i].test(c) && cols[j].test(c));
+      if (cands.length < minCands) { ok = false; break; }
+      cellCands[i].push(cands);
+    }
+    if (!ok) continue;
+    if (!hasPerfectMatching(cellCands)) continue;
+    return { rows, cols, candidates: cellCands };
+  }
+  return null;
+}
+function computeYesterdayExclusions() {
+  const MAX_LOOKBACK = 14;
+  try {
+    const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' });
+    const now = new Date();
+    const yesterday = new Date(now); yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    const start = new Date(now); start.setUTCDate(start.getUTCDate() - MAX_LOOKBACK);
+    let prevIds = new Set();
+    const cursor = new Date(start);
+    while (fmt.format(cursor) <= fmt.format(yesterday)) {
+      const dateStr = fmt.format(cursor);
+      const cacheKey = 'mdku:chain:' + dateStr;
+      const cached = localStorage.getItem(cacheKey);
+      let ids;
+      if (cached) ids = JSON.parse(cached);
+      else { const grid = pickGrid(hashStr(dateStr), prevIds); if (!grid) return new Set(); ids = [...grid.rows.map(c => c.id), ...grid.cols.map(c => c.id)]; try { localStorage.setItem(cacheKey, JSON.stringify(ids)); } catch {} }
+      prevIds = new Set(ids);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return prevIds;
+  } catch { return new Set(); }
+}
+function hasPerfectMatching(cellCandidates) {
+  const cells = [];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) cells.push(cellCandidates[i][j].map(c => c.i));
+  const order = cells.map((c, idx) => idx).sort((a, b) => cells[a].length - cells[b].length);
+  const used = new Set();
+  function bt(k) { if (k === 9) return true; const idx = order[k]; for (const id of cells[idx]) { if (used.has(id)) continue; used.add(id); if (bt(k + 1)) return true; used.delete(id); } return false; }
+  return bt(0);
+}
+
+/* ─── État ────────────────────────────────────────────────── */
+let date, seed, PUZZLE, state;
+const KEY = () => 'mdku:' + date;
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY()));
+    if (s && s.placements && s.attempts !== undefined) {
+      if (!s.cellAttempts) s.cellAttempts = [[0,0,0],[0,0,0],[0,0,0]];
+      if (!s.startedAt) s.startedAt = null;
+      if (!s.finishedAt) s.finishedAt = null;
+      return s;
+    }
+  } catch {}
+  return { placements: [[null,null,null],[null,null,null],[null,null,null]], cellAttempts: [[0,0,0],[0,0,0],[0,0,0]], attempts: 0, discoveryAttempts: 0, startedAt: null, finishedAt: null };
+}
+function saveState() { localStorage.setItem(KEY(), JSON.stringify(state)); }
+
+/* ─── Critères géographiques (boussole) ───────────────────── */
+const GEO_CRITERIA = {
+  est_paris: { dir: 'E', label: 'à l\'est de Paris' },
+  ouest_paris: { dir: 'O', label: 'à l\'ouest de Paris' },
+  nord_lyon: { dir: 'N', label: 'au nord de Lyon' },
+  sud_lyon: { dir: 'S', label: 'au sud de Lyon' },
+  nord_loire: { dir: 'N', label: 'au nord de la Loire' },
+  proche_mer: { dir: 'M', label: 'près de la mer' },
+  proche_frontiere: { dir: 'F', label: 'près d\'une frontière' },
+};
+function compassSVG(dir) {
+  const arrows = {
+    N: { fill: 'M9,2 L7.5,9 L9,8 L10.5,9 Z', shadow: 'M9,16 L7.5,9 L9,10 L10.5,9 Z' },
+    S: { fill: 'M9,16 L7.5,9 L9,10 L10.5,9 Z', shadow: 'M9,2 L7.5,9 L9,8 L10.5,9 Z' },
+    E: { fill: 'M16,9 L9,7.5 L10,9 L9,10.5 Z', shadow: 'M2,9 L9,7.5 L8,9 L9,10.5 Z' },
+    O: { fill: 'M2,9 L9,7.5 L8,9 L9,10.5 Z', shadow: 'M16,9 L9,7.5 L10,9 L9,10.5 Z' },
+  };
+  if (!arrows[dir]) return '';
+  return `<svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true">
+    <circle cx="9" cy="9" r="7.5" fill="#FBF9F4" stroke="#1F2E4A" stroke-width="0.5"/>
+    <path d="${arrows[dir].shadow}" fill="#1F2E4A" opacity="0.5"/>
+    <path d="${arrows[dir].fill}" fill="#8B3A3A"/>
+    <circle cx="9" cy="9" r="0.7" fill="#C19A4B"/>
+  </svg>`;
+}
+function getGeoDirForCell(i, j) {
+  if (!PUZZLE) return null;
+  const rowCrit = PUZZLE.rows[i].id;
+  const colCrit = PUZZLE.cols[j].id;
+  if (GEO_CRITERIA[rowCrit]) return GEO_CRITERIA[rowCrit].dir;
+  if (GEO_CRITERIA[colCrit]) return GEO_CRITERIA[colCrit].dir;
+  return null;
+}
+
+/* ─── Rendu principal ─────────────────────────────────────── */
+function renderApp() {
+  date = todayParis();
+  seed = hashStr(date);
+  const excludedIds = computeYesterdayExclusions();
+  PUZZLE = pickGrid(seed, excludedIds);
+  state = loadState();
+
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="meta-bar">
+      <div>
+        <span class="meta-progress" id="progress">0/9 cases</span>
+        · <span id="attempts">0</span> placements
+        · <span class="meta-timer" id="timer">—</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <a class="pseudo-badge" id="pseudo-badge" href="#"><span id="pseudo-label">Pseudo</span> : <strong>—</strong></a>
+        <button class="stats-btn" id="stats-btn">Mes stats</button>
+      </div>
+    </div>
+    <p class="puzzle-date" id="puzzle-date"></p>
+
+    <div class="game-area">
+      <div class="grid-shell">
+        <div class="corner-bl"></div><div class="corner-br"></div>
+        <div class="grid" id="grid">
+          <div class="corner-empty"></div>
+          <div class="col-header" id="col-0"></div>
+          <div class="col-header" id="col-1"></div>
+          <div class="col-header" id="col-2"></div>
+          <div class="row-header" id="row-0"></div>
+          <div class="cell" data-row="0" data-col="0"></div>
+          <div class="cell" data-row="0" data-col="1"></div>
+          <div class="cell" data-row="0" data-col="2"></div>
+          <div class="row-header" id="row-1"></div>
+          <div class="cell" data-row="1" data-col="0"></div>
+          <div class="cell" data-row="1" data-col="1"></div>
+          <div class="cell" data-row="1" data-col="2"></div>
+          <div class="row-header" id="row-2"></div>
+          <div class="cell" data-row="2" data-col="0"></div>
+          <div class="cell" data-row="2" data-col="1"></div>
+          <div class="cell" data-row="2" data-col="2"></div>
+        </div>
+      </div>
+
+      <aside class="side-panel">
+        <div class="panel">
+          <p class="panel-title">Territoire couvert</p>
+          <div id="mini-france">${renderMiniFrance([])}</div>
+        </div>
+        <div class="panel">
+          <p class="panel-title">Légende</p>
+          <div class="legend-row"><span class="legend-swatch valid"></span><span>correcte</span></div>
+          <div class="legend-row"><span class="legend-swatch invalid"></span><span>erronée</span></div>
+          <div class="legend-row"><span class="legend-swatch duplicate"></span><span>déjà placée</span></div>
+        </div>
+      </aside>
+    </div>
+
+    <div id="endgame" hidden></div>
+
+    <section class="section" id="leaderboard-section">
+      <div class="section-header">
+        <p class="section-title">Classement du jour</p>
+        <span class="section-meta" id="leaderboard-meta">—</span>
+      </div>
+      <div id="leaderboard-body"><p class="stats-empty">Joue la grille du jour pour apparaître ici.</p></div>
+    </section>
+
+    <section class="section accent-left" id="discovery">
+      <p class="section-tag">Découverte du jour</p>
+      <div id="discovery-body"><p class="discovery-empty">Chargement…</p></div>
+    </section>
+
+    <section class="section" id="gallery-section">
+      <div class="section-header">
+        <p class="section-title">Galerie des grilles passées</p>
+        <span class="section-meta">7 derniers jours</span>
+      </div>
+      <div id="gallery-body"></div>
+    </section>
+  `;
+
+  document.getElementById('puzzle-date').textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'}).replace(/^./, c => c.toUpperCase());
+  document.getElementById('stats-btn').addEventListener('click', showStats);
+  document.getElementById('pseudo-badge').addEventListener('click', e => { e.preventDefault(); promptPseudo(); });
+  updatePseudoBadge();
+  startTimerLoop();
+
+  if (!PUZZLE) {
+    document.getElementById('grid').innerHTML = '<div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--bordeaux);font-family:var(--serif);font-style:italic;">Impossible de générer la grille du jour. Reviens demain.</div>';
+    return;
+  }
+  for (let j = 0; j < 3; j++) document.getElementById('col-' + j).innerHTML = PUZZLE.cols[j].label.replace(/ /g, '<br>');
+  for (let i = 0; i < 3; i++) document.getElementById('row-' + i).textContent = PUZZLE.rows[i].label;
+  renderGrid();
+  loadDiscovery();
+  loadLeaderboardInline();
+  renderGallery();
+}
+
+/* ─── Mini-carte France ──────────────────────────────────── */
+const FRANCE_PATH = "M 109,6 L 101,8 L 97,13 L 95,24 L 90,27 L 80,30 L 76,35 L 71,39 L 52,32 L 49,37 L 52,47 L 53,51 L 47,51 L 33,48 L 12,57 L 18,65 L 28,69 L 37,71 L 44,79 L 50,93 L 59,100 L 61,110 L 59,128 L 57,137 L 55,147 L 52,153 L 70,155 L 86,157 L 98,160 L 97,169 L 107,162 L 116,165 L 120,170 L 121,153 L 130,149 L 138,152 L 151,154 L 159,158 L 169,155 L 174,150 L 180,145 L 181,140 L 168,124 L 171,104 L 161,99 L 164,86 L 170,79 L 181,74 L 179,64 L 183,54 L 186,46 L 172,43 L 155,37 L 140,33 L 142,26 L 130,22 L 117,15 L 118,13 L 110,12 Z";
+const LON_MIN = -5, LON_MAX = 8.5, LAT_MIN = 42.3, LAT_MAX = 51.1;
+function geoToXY(lon, lat) {
+  const x = 5 + (lon - LON_MIN) * 190 / (LON_MAX - LON_MIN);
+  const y = 5 + (LAT_MAX - lat) * 170 / (LAT_MAX - LAT_MIN);
+  return [x, y];
+}
+function renderMiniFrance(placedCommunes) {
+  const dots = placedCommunes.map(c => {
+    const [x, y] = geoToXY(c.lon, c.lat);
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="#C19A4B" stroke="#1F2E4A" stroke-width="0.6"><title>${c.n}</title></circle>`;
+  }).join('');
+  return `<svg width="100%" viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg">
+    <path d="${FRANCE_PATH}" fill="#FBF9F4" stroke="#1F2E4A" stroke-width="1" stroke-linejoin="round"/>
+    <path d="${FRANCE_PATH}" fill="none" stroke="#C19A4B" stroke-width="0.4" stroke-dasharray="1,2" transform="translate(0,2)"/>
+    ${dots}
+  </svg>`;
+}
+function updateMiniFrance() {
+  const placed = [];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+    const insee = state.placements[i][j];
+    if (insee) {
+      const c = CORPUS.find(x => x.i === insee);
+      if (c && !placed.some(p => p.i === c.i)) placed.push(c);
+    }
+  }
+  // CORPUS may not have lat/lon — fetch from data field. Actually our corpus has lat/lon embedded? Check.
+  // Looking at corpus structure: i, n, nn, s, d, dn, r, rn, k → no lat/lon in slim corpus.
+  // Need to add lat/lon to data.json export. For now, fallback: no dots.
+  const placedWithCoords = placed.filter(c => c.lat != null && c.lon != null);
+  document.getElementById('mini-france').innerHTML = renderMiniFrance(placedWithCoords);
+}
+
+/* ─── Rendu cellules ─────────────────────────────────────── */
+function getCellEl(i, j) { return document.querySelector(`.cell[data-row="${i}"][data-col="${j}"]`); }
+function cellState(i, j) {
+  const insee = state.placements[i][j];
+  if (!insee) return 'empty';
+  let count = 0;
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) if (state.placements[r][c] === insee) count++;
+  if (count > 1) return 'duplicate';
+  const guess = CORPUS.find(c => c.i === insee);
+  if (!guess) return 'invalid';
+  if (PUZZLE.rows[i].test(guess) && PUZZLE.cols[j].test(guess)) return 'valid';
+  return 'invalid';
+}
+function renderCell(i, j) {
+  const el = getCellEl(i, j);
+  el.classList.remove('valid', 'invalid', 'duplicate', 'active-input');
+  el.innerHTML = '';
+  const s = cellState(i, j);
+  const insee = state.placements[i][j];
+  if (s === 'empty') {
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.placeholder = 'Nom de commune…'; inp.autocomplete = 'off';
+    inp.autocapitalize = 'words'; inp.spellcheck = false;
+    inp.setAttribute('autocorrect', 'off');
+    inp.setAttribute('inputmode', 'text');
+    inp.dataset.row = i; inp.dataset.col = j;
+    el.appendChild(inp);
+    setupAutocomplete(inp, i, j);
+    return;
+  }
+  el.classList.add(s);
+  const guess = CORPUS.find(c => c.i === insee);
+  const icon = s === 'valid'
+    ? `<svg class="cell-icon" width="14" height="14" viewBox="0 0 14 14"><path d="M2,7 L5,10 L12,3" stroke="#4A6B47" stroke-width="1.5" fill="none"/></svg>`
+    : s === 'invalid'
+    ? `<svg class="cell-icon" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#8B3A3A" stroke-width="0.8"/><line x1="4" y1="4" x2="10" y2="10" stroke="#8B3A3A" stroke-width="1.2"/><line x1="10" y1="4" x2="4" y2="10" stroke="#8B3A3A" stroke-width="1.2"/></svg>`
+    : `<svg class="cell-icon" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#C19A4B" stroke-width="0.8"/><path d="M4,7 A3,3 0 1 1 9,9" stroke="#C19A4B" stroke-width="1.2" fill="none"/><polygon points="9,9 11,7 11,11" fill="#C19A4B"/></svg>`;
+  // Boussole si valide ET critère géographique
+  let compass = '';
+  if (s === 'valid') {
+    const dir = getGeoDirForCell(i, j);
+    if (dir && ['N','S','E','O'].includes(dir)) compass = compassSVG(dir);
+  }
+  const iconHTML = compass || icon;
+  el.innerHTML = `
+    <div class="cell-head">
+      <div class="cell-info">
+        <p class="cell-name">${guess.n}</p>
+        <p class="cell-dept">${guess.dn} · ${guess.d}</p>
+      </div>
+      ${iconHTML}
+    </div>
+    <div class="cell-stats ${s === 'invalid' ? 'invalid-stats' : ''} ${s === 'duplicate' ? 'duplicate-stats' : ''}" data-cell-stats="${i}-${j}">
+      ${s === 'duplicate' ? 'déjà placée dans une autre case' : `<span class="your-attempts">${state.cellAttempts[i][j]||0}</span> tentative${(state.cellAttempts[i][j]||0)>1?'s':''}`}
+    </div>
+  `;
+  const btn = document.createElement('button');
+  btn.className = 'reset-btn'; btn.textContent = '×'; btn.title = 'Libérer la case';
+  btn.onclick = () => clearCell(i, j);
+  el.appendChild(btn);
+}
+function renderGrid() {
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) renderCell(i, j);
+  let valid = 0;
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (cellState(i, j) === 'valid') valid++;
+  document.getElementById('progress').textContent = valid + '/9 cases';
+  document.getElementById('attempts').textContent = state.attempts;
+  const eg = document.getElementById('endgame');
+  eg.hidden = valid !== 9;
+  if (valid === 9) {
+    if (!state.finishedAt) state.finishedAt = Date.now();
+    const durMs = (state.finishedAt && state.startedAt) ? state.finishedAt - state.startedAt : 0;
+    const noPseudoNotice = getPseudo() ? '' : `<div class="pseudo-cta">Pour apparaître au <strong>classement du jour</strong>, choisis un pseudo. Sans pseudo, ton score reste local.<br><button class="btn" onclick="promptPseudo()" style="margin-top:6px;">Choisir mon pseudo</button></div>`;
+    eg.className = 'endgame';
+    eg.innerHTML = `
+      <h2>Grille complétée</h2>
+      <p>Réussie en <strong>${state.attempts}</strong> placement${state.attempts > 1 ? 's' : ''} · <strong>${formatDuration(durMs)}</strong>.</p>
+      ${noPseudoNotice}
+      <button class="btn" onclick="share()">Partager</button>
+      <button class="btn btn-secondary" onclick="showStats()" style="margin-left:8px;">Voir le classement</button>
+    `;
+    recordWin();
+    overlayCellStats();
+    saveState();
+    setTimeout(loadLeaderboardInline, 1500);
+  }
+  updateMiniFrance();
+}
+
+function formatDuration(ms) {
+  if (!ms || ms < 0) return '—';
+  const sec = Math.floor(ms / 1000);
+  const m = Math.floor(sec / 60), s = sec % 60;
+  if (m >= 60) return Math.floor(m/60) + 'h' + String(m%60).padStart(2,'0');
+  return m + "'" + String(s).padStart(2, '0') + "''";
+}
+let timerInterval = null;
+function startTimerLoop() {
+  if (timerInterval) return;
+  const tick = () => {
+    const el = document.getElementById('timer');
+    if (!el) return;
+    if (state.finishedAt && state.startedAt) {
+      el.textContent = formatDuration(state.finishedAt - state.startedAt);
+      clearInterval(timerInterval); timerInterval = null;
+    } else if (state.startedAt) {
+      el.textContent = formatDuration(Date.now() - state.startedAt);
+    } else {
+      el.textContent = '—';
+    }
+  };
+  tick(); timerInterval = setInterval(tick, 1000);
+}
+function placeCommune(i, j, insee) {
+  if (!state.startedAt) state.startedAt = Date.now();
+  state.placements[i][j] = insee;
+  state.attempts++;
+  state.cellAttempts[i][j] = (state.cellAttempts[i][j] || 0) + 1;
+  saveState();
+  renderGrid();
+}
+function clearCell(i, j) {
+  state.placements[i][j] = null;
+  saveState();
+  renderGrid();
+  const inp = getCellEl(i, j).querySelector('input');
+  if (inp) inp.focus();
+}
+
+/* ─── Autocomplétion ─────────────────────────────────────── */
+function setupAutocomplete(inp, i, j) {
+  let activeIdx = -1;
+  let sugg = null;
+  let vvListener = null;
+  function isMobile() {
+    return window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+  }
+  function visibleHeight() {
+    // visualViewport reflète la hauteur réellement visible (clavier exclu).
+    return (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  }
+  function repositionMobileSheet() {
+    if (!sugg || !window.visualViewport) return;
+    const vp = window.visualViewport;
+    // bottom = espace entre le bas de la fenêtre et le bas du viewport visible.
+    // Quand le clavier est ouvert, ce nombre = hauteur du clavier.
+    const bottom = Math.max(8, window.innerHeight - vp.height - vp.offsetTop + 8);
+    sugg.style.bottom = bottom + 'px';
+  }
+  function close() {
+    if (sugg) { sugg.remove(); sugg = null; activeIdx = -1; }
+    if (vvListener && window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', vvListener);
+      window.visualViewport.removeEventListener('scroll', vvListener);
+      vvListener = null;
+    }
+  }
+  inp.addEventListener('input', () => {
+    const q = normalize(inp.value.trim());
+    close();
+    if (q.length < 2) return;
+    const matches = CORPUS.filter(c => c.nn.includes(q))
+      .sort((a, b) => { const aS = a.nn.startsWith(q) ? 0 : 1; const bS = b.nn.startsWith(q) ? 0 : 1; return aS - bS || a.nn.localeCompare(b.nn); })
+      .slice(0, 8);
+    if (!matches.length) return;
+    sugg = document.createElement('ul');
+    sugg.className = 'suggestions';
+    sugg.innerHTML = matches.map((c, idx) => `<li data-insee="${c.i}" ${idx === 0 ? 'class="active"' : ''}><span class="name">${c.n}</span><span class="dept">${c.dn} · ${c.d}</span></li>`).join('');
+    sugg.querySelectorAll('li').forEach(li => { li.addEventListener('mousedown', e => { e.preventDefault(); placeCommune(i, j, li.dataset.insee); }); });
+    if (isMobile()) {
+      // Mode bottom-sheet : on attache au body pour échapper aux contextes
+      // d'overflow/transform parents, puis on ancre au-dessus du clavier.
+      document.body.appendChild(sugg);
+      repositionMobileSheet();
+      if (window.visualViewport) {
+        vvListener = repositionMobileSheet;
+        window.visualViewport.addEventListener('resize', vvListener);
+        window.visualViewport.addEventListener('scroll', vvListener);
+      }
+    } else {
+      inp.parentElement.appendChild(sugg);
+      const r = inp.getBoundingClientRect();
+      const vh = visibleHeight();
+      if (vh - r.bottom < sugg.offsetHeight + 20 && r.top > vh - r.bottom) sugg.classList.add('upward');
+    }
+    activeIdx = 0;
+  });
+  inp.addEventListener('keydown', e => {
+    if (!sugg) return;
+    const items = [...sugg.querySelectorAll('li')];
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = (activeIdx + 1) % items.length; items.forEach((it, idx) => it.classList.toggle('active', idx === activeIdx)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = (activeIdx - 1 + items.length) % items.length; items.forEach((it, idx) => it.classList.toggle('active', idx === activeIdx)); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (activeIdx >= 0 && items[activeIdx]) placeCommune(i, j, items[activeIdx].dataset.insee); }
+    else if (e.key === 'Escape') close();
+  });
+  inp.addEventListener('blur', () => setTimeout(close, 200));
+  // Mobile : quand le clavier ouvre, on amène la cellule active dans la
+  // zone visible (sinon le clavier la masque). Délai pour laisser le
+  // visualViewport se mettre à jour.
+  inp.addEventListener('focus', () => {
+    if (window.matchMedia && !window.matchMedia('(max-width: 720px)').matches) return;
+    setTimeout(() => {
+      try { inp.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      catch (e) { inp.parentElement.scrollIntoView(); }
+    }, 320);
+  });
+}
+
+/* ─── Pseudo / Stats ──────────────────────────────────────── */
+const STATS_KEY = 'mdku:stats';
+const ANON_KEY = 'mdku:anon_id';
+const PSEUDO_KEY = 'mdku:pseudo';
+function getAnonId() {
+  let id = localStorage.getItem(ANON_KEY);
+  if (!id) { id = 'a' + Math.random().toString(36).slice(2, 11) + Date.now().toString(36); localStorage.setItem(ANON_KEY, id); }
+  return id;
+}
+function getPseudo() { return localStorage.getItem(PSEUDO_KEY) || ''; }
+function validatePseudo(p) {
+  p = String(p || '').trim();
+  if (p.length < 3) return { ok: false, reason: 'minimum 3 caractères' };
+  if (p.length > 20) return { ok: false, reason: 'maximum 20 caractères' };
+  if (!/^[a-zA-Z0-9_-]+$/.test(p)) return { ok: false, reason: 'lettres, chiffres, tiret et underscore uniquement' };
+  return { ok: true, value: p };
+}
+function setPseudo(p) { const v = validatePseudo(p); if (!v.ok) return v; localStorage.setItem(PSEUDO_KEY, v.value); updatePseudoBadge(); return v; }
+function updatePseudoBadge() {
+  const b = document.getElementById('pseudo-badge'); if (!b) return;
+  const p = getPseudo();
+  if (p) { b.classList.remove('no-pseudo'); b.innerHTML = `Joueur : <strong>${p.replace(/</g,'&lt;')}</strong>`; }
+  else { b.classList.add('no-pseudo'); b.innerHTML = `Sans pseudo · <strong>Définir</strong>`; }
+}
+function promptPseudo() {
+  const current = getPseudo();
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg';
+  bg.innerHTML = `
+    <div class="modal">
+      <h2>${current ? 'Modifier' : 'Choisir'} ton pseudo <button class="close" id="ps-close">×</button></h2>
+      <p style="font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--sepia);margin:6px 0 0;">Un pseudo est requis pour apparaître au classement public. Sans pseudo, tes statistiques restent locales et privées.</p>
+      <input type="text" id="ps-input" class="pseudo-input" placeholder="ex : Alicathe" value="${current.replace(/"/g,'&quot;')}" maxlength="20" autofocus>
+      <div class="pseudo-hint">3 à 20 caractères · lettres, chiffres, tirets, underscores</div>
+      <div class="pseudo-error" id="ps-err" hidden></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+        ${current ? '<button class="btn btn-secondary" id="ps-clear">Retirer</button>' : ''}
+        <button class="btn" id="ps-save">Enregistrer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bg);
+  bg.addEventListener('click', e => { if (e.target === bg) bg.remove(); });
+  document.getElementById('ps-close').onclick = () => bg.remove();
+  const input = document.getElementById('ps-input'), err = document.getElementById('ps-err');
+  const save = () => {
+    const r = setPseudo(input.value);
+    if (!r.ok) { err.textContent = r.reason; err.hidden = false; return; }
+    bg.remove();
+    if (state.finishedAt && CONFIG.stats_endpoint) {
+      const stats = loadLocalStats();
+      if (stats.history.find(x => x.date === date)) sendScore(state.attempts, state.cellAttempts.flat(), state.finishedAt - state.startedAt);
+    }
+    setTimeout(loadLeaderboardInline, 800);
+  };
+  document.getElementById('ps-save').onclick = save;
+  if (document.getElementById('ps-clear')) document.getElementById('ps-clear').onclick = () => { localStorage.removeItem(PSEUDO_KEY); updatePseudoBadge(); bg.remove(); };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
+}
+window.promptPseudo = promptPseudo;
+function sendScore(attempts, cellAttemptsFlat, durationMs) {
+  if (!CONFIG.stats_endpoint) return;
+  const pseudo = getPseudo();
+  if (!pseudo) return;
+  fetch(CONFIG.stats_endpoint, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ date, attempts, cell_attempts: cellAttemptsFlat, duration_ms: durationMs || 0, mode: 'sudoku', anon_id: getAnonId(), pseudo }) }).catch(() => {});
+}
+function loadLocalStats() { try { return JSON.parse(localStorage.getItem(STATS_KEY)) || { history: [] }; } catch { return { history: [] }; } }
+function saveLocalStats(s) { localStorage.setItem(STATS_KEY, JSON.stringify(s)); }
+function recordWin() {
+  const stats = loadLocalStats();
+  if (stats.history.some(h => h.date === date)) return;
+  const durationMs = state.finishedAt && state.startedAt ? state.finishedAt - state.startedAt : 0;
+  stats.history.unshift({ date, attempts: state.attempts, duration_ms: durationMs, mode: 'sudoku', placements: state.placements.map(r => r.map(c => c ? cellState(0,0)==='valid'?'v':'p' : 'e')) });
+  // Save full cellStates for gallery render
+  const cellStates = [[],[],[]];
+  for (let i=0;i<3;i++) for (let j=0;j<3;j++) cellStates[i].push(cellState(i,j));
+  stats.history[0].cellStates = cellStates;
+  if (stats.history.length > 60) stats.history.pop();
+  saveLocalStats(stats);
+  sendScore(state.attempts, state.cellAttempts.flat(), durationMs);
+}
+
+/* ─── Galerie ────────────────────────────────────────────── */
+function renderGallery() {
+  const body = document.getElementById('gallery-body');
+  const stats = loadLocalStats();
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' });
+  const today = fmt.format(new Date());
+  // Construire les 7 derniers jours
+  const days = [];
+  for (let k = 0; k < 7; k++) {
+    const d = new Date(); d.setUTCDate(d.getUTCDate() - k);
+    days.push(fmt.format(d));
+  }
+  days.reverse();
+  body.innerHTML = `<div class="gallery-grid">` + days.map(d => {
+    const h = stats.history.find(x => x.date === d);
+    const display = d.slice(8, 10) + '/' + d.slice(5, 7);
+    if (!h && d === today) {
+      return `<div class="gallery-day"><div class="gallery-mini partial">${'<div></div>'.repeat(9)}</div><p class="date">${display}</p><p class="score">en cours</p></div>`;
+    }
+    if (!h) {
+      return `<div class="gallery-day"><div class="gallery-mini empty">${'<div class="empty"></div>'.repeat(9)}</div><p class="date" style="color:var(--sepia);">${display}</p><p class="score empty">non jouée</p></div>`;
+    }
+    const cs = h.cellStates || [['v','v','v'],['v','v','v'],['v','v','v']];
+    const cells = cs.flat().map(s => s === 'v' ? '<div></div>' : s === 'duplicate' ? '<div class="dup"></div>' : '<div class="empty"></div>').join('');
+    const cls = cs.flat().every(s => s === 'v') ? '' : 'partial';
+    return `<div class="gallery-day"><div class="gallery-mini ${cls}">${cells}</div><p class="date">${display}</p><p class="score">${h.attempts} · ${formatDuration(h.duration_ms||0)}</p></div>`;
+  }).join('') + `</div><p class="gallery-footer">Les grilles passées sont sauvegardées dans ton navigateur.</p>`;
+}
+
+/* ─── Leaderboard inline ──────────────────────────────────── */
+async function loadLeaderboardInline() {
+  const body = document.getElementById('leaderboard-body');
+  const meta = document.getElementById('leaderboard-meta');
+  if (!CONFIG.stats_endpoint) { body.innerHTML = `<p class="stats-empty">Classement non configuré (backend désactivé).</p>`; meta.textContent = '—'; return; }
+  try {
+    const r = await fetch(CONFIG.stats_endpoint + '?date=' + encodeURIComponent(date) + '&anon_id=' + encodeURIComponent(getAnonId()), { cache: 'no-cache' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    meta.textContent = (d.total_with_pseudo || d.count || 0) + ' joueur' + ((d.total_with_pseudo || d.count || 0) > 1 ? 's' : '') + ' · grille du jour';
+    const lb = (d.leaderboard || []).slice(0, 5);
+    if (!lb.length) { body.innerHTML = `<p class="stats-empty">Pas encore de joueur classé aujourd'hui. Sois le premier !</p>`; return; }
+    const ordinal = n => n === 1 ? '1ᵉʳ' : n + 'ᵉ';
+    let html = '<div class="leaderboard-inline">';
+    lb.forEach(e => {
+      html += `<div class="leaderboard-row ${e.is_you ? 'you' : ''}">
+        <span class="lb-rank">${ordinal(e.rank)}</span>
+        <span class="lb-pseudo">${(e.pseudo||'?').replace(/</g,'&lt;')}</span>
+        <span class="lb-attempts">${e.attempts} essais</span>
+        <span class="lb-time">${formatDuration(e.duration_ms || 0)}</span>
+      </div>`;
+    });
+    if (d.your_rank && d.your_rank > 5) {
+      const me = getPseudo() || '(toi)';
+      html += `<div class="leaderboard-row you">
+        <span class="lb-rank">${ordinal(d.your_rank)}</span>
+        <span class="lb-pseudo">${me.replace(/</g,'&lt;')}</span>
+        <span class="lb-attempts">${state.attempts} essais</span>
+        <span class="lb-time">${state.finishedAt&&state.startedAt?formatDuration(state.finishedAt-state.startedAt):'—'}</span>
+      </div>`;
+    }
+    html += '</div><p class="lb-footer">Top 5 affiché · classement complet dans « Mes stats »</p>';
+    body.innerHTML = html;
+  } catch (e) {
+    body.innerHTML = `<p class="global-error">Impossible de charger le classement : ${e.message}</p>`;
+  }
+}
+
+/* ─── Stats modale (compatibilité existante) ──────────────── */
+async function showStats() {
+  const local = loadLocalStats();
+  const personal = computePersonalStats(local);
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg';
+  bg.innerHTML = `
+    <div class="modal">
+      <h2>Mes statistiques <button class="close" id="stats-close">×</button></h2>
+      ${personal ? `
+        <div class="stats-grid">
+          <div class="stat-cell"><div class="label">Joué</div><div class="value">${personal.total} <small>jour${personal.total>1?'s':''}</small></div></div>
+          <div class="stat-cell"><div class="label">Streak</div><div class="value">${personal.streak} <small>jour${personal.streak>1?'s':''}</small></div></div>
+          <div class="stat-cell"><div class="label">Meilleur</div><div class="value">${personal.best} <small>essais</small></div></div>
+          <div class="stat-cell"><div class="label">Moyenne</div><div class="value">${personal.avg} <small>essais</small></div></div>
+        </div>
+      ` : `<p class="stats-empty">Aucune grille complétée. Joue celle d'aujourd'hui pour voir tes stats.</p>`}
+      <h3>Aujourd'hui face aux autres</h3>
+      <div id="stats-global"><p class="stats-empty">Chargement…</p></div>
+    </div>`;
+  document.body.appendChild(bg);
+  bg.addEventListener('click', e => { if (e.target === bg) bg.remove(); });
+  document.getElementById('stats-close').onclick = () => bg.remove();
+  const globalEl = document.getElementById('stats-global');
+  if (!CONFIG.stats_endpoint) { globalEl.innerHTML = `<p class="global-error">Backend de stats non configuré.</p>`; return; }
+  try {
+    const r = await fetch(CONFIG.stats_endpoint + '?date=' + encodeURIComponent(date) + '&anon_id=' + encodeURIComponent(getAnonId()), { cache: 'no-cache' });
+    const global = await r.json();
+    if (global.error) throw new Error(global.error);
+    const yourScore = personal?.today;
+    let html = '';
+    if (yourScore && global.histogram) {
+      const entries = Object.entries(global.histogram).map(([k,v]) => [parseInt(k), v]);
+      const total = entries.reduce((s, [,n]) => s + n, 0);
+      if (total >= 3) {
+        const eqOrBetter = entries.reduce((s, [att, n]) => s + (att <= yourScore ? n : 0), 0);
+        const pct = Math.max(1, Math.round(eqOrBetter / total * 100));
+        html += `<div class="percentile-card"><div class="big">Top ${pct}%</div><div class="legend">de ${global.count} joueur${global.count>1?'s':''} aujourd'hui</div></div>`;
+      }
+    }
+    html += `<div class="stats-grid"><div class="stat-cell"><div class="label">Moyenne du jour</div><div class="value">${Math.round((global.avg||0)*10)/10} <small>essais</small></div></div><div class="stat-cell"><div class="label">Joueurs</div><div class="value">${global.count||0}</div></div></div>`;
+    globalEl.innerHTML = html;
+  } catch (e) {
+    globalEl.innerHTML = `<p class="global-error">Impossible de charger : ${e.message}</p>`;
+  }
+}
+function computePersonalStats(stats) {
+  const h = stats.history;
+  if (!h.length) return null;
+  const attempts = h.map(x => x.attempts);
+  const total = h.length;
+  const best = Math.min(...attempts);
+  const avg = Math.round(attempts.reduce((a,b)=>a+b,0) / total * 10) / 10;
+  const dates = new Set(h.map(x => x.date));
+  let streak = 0;
+  let cursor = new Date();
+  while (true) {
+    const d = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(cursor);
+    if (dates.has(d)) { streak++; cursor.setDate(cursor.getDate() - 1); }
+    else if (streak === 0 && d === date) { cursor.setDate(cursor.getDate() - 1); }
+    else break;
+  }
+  const today = h.find(x => x.date === date);
+  return { total, best, avg, streak, today: today?.attempts };
+}
+function overlayCellStats() {
+  if (!CONFIG.stats_endpoint) return;
+  fetch(CONFIG.stats_endpoint + '?date=' + encodeURIComponent(date), { cache: 'no-cache' }).then(r => r.json()).then(global => {
+    if (!global || !global.cell_avg || global.cell_count < 1) return;
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+      const idx = i * 3 + j;
+      const yours = state.cellAttempts[i][j] || 0;
+      const avg = global.cell_avg[idx];
+      if (avg == null || avg === 0) continue;
+      const el = document.querySelector(`[data-cell-stats="${i}-${j}"]`);
+      if (!el) continue;
+      let cls = '';
+      if (yours < avg * 0.7) cls = 'good';
+      else if (yours > avg * 1.5) cls = 'bad';
+      el.innerHTML = `<span class="your-attempts ${cls}">${yours}</span> / ${avg.toFixed(1)} en moy.`;
+    }
+  }).catch(() => {});
+}
+
+/* ─── Découverte ──────────────────────────────────────────── */
+async function loadDiscovery() {
+  const f = CONFIG.discovery_filter || {};
+  const pool = CORPUS.filter(c => (!f.statut || c.s === f.statut) && !(f.exclude_flag && c.k[f.exclude_flag]));
+  if (!pool.length) return;
+  const idx = hashStr(date + ':discovery:' + (state.discoveryAttempts || 0)) % pool.length;
+  const c = pool[idx];
+  const title = WIKI_OVERRIDES[c.i] || c.n;
+  const body = document.getElementById('discovery-body');
+  body.innerHTML = `<p class="discovery-empty">Chargement…</p>`;
+  try {
+    const r = await fetch('https://fr.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title));
+    if (!r.ok) throw new Error('HTTP');
+    const d = await r.json();
+    if (d.type === 'disambiguation') throw new Error('hom');
+    const img = d.thumbnail?.source || '';
+    const extract = (d.extract || '').replace(/</g, '&lt;');
+    const pageUrl = d.content_urls?.desktop?.page || ('https://fr.wikipedia.org/wiki/' + encodeURIComponent(title));
+    body.innerHTML = `<div class="discovery-card">${img ? `<img src="${img}" alt="${c.n}">` : ''}<div class="body"><p class="city-name">${c.n}</p><p class="city-meta">${c.dn} · ${c.d} · ${c.s === 'pref' ? 'Préfecture' : 'Sous-préfecture'}</p><p class="extract">${extract}</p><a class="read-more" href="${pageUrl}" target="_blank" rel="noopener">Lire sur Wikipédia →</a></div></div>`;
+  } catch (e) {
+    body.innerHTML = `<div class="discovery-card"><div class="body"><p class="city-name">${c.n}</p><p class="city-meta">${c.dn} · ${c.d}</p><p class="extract" style="color:var(--sepia);font-style:italic;">Aperçu Wikipédia indisponible.</p><a class="read-more" href="https://fr.wikipedia.org/wiki/${encodeURIComponent(title)}" target="_blank" rel="noopener">Voir sur Wikipédia →</a></div></div>`;
+  }
+}
+
+/* ─── Partage ────────────────────────────────────────────── */
+function share() {
+  const lines = [];
+  for (let i = 0; i < 3; i++) {
+    const row = [];
+    for (let j = 0; j < 3; j++) {
+      const s = cellState(i, j);
+      row.push(s === 'valid' ? '🟫' : s === 'duplicate' ? '🟧' : s === 'invalid' ? '⬛' : '⬜');
+    }
+    lines.push(row.join(''));
+  }
+  const t = state.finishedAt && state.startedAt ? formatDuration(state.finishedAt - state.startedAt) : '';
+  const txt = `Sudoku des Sous-préfectures · ${date}\n${state.attempts} essais · ${t}\n${lines.join('\n')}`;
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast('Résultat copié'));
+  else prompt('Copie :', txt);
+}
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
+window.share = share;
+window.showStats = showStats;
+</script>
+
+</body>
+</html>
