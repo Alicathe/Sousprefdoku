@@ -118,6 +118,16 @@ Dans l'onglet **`config`**, tu peux changer :
 | `max_per_family` | Nombre maximum de critères de la même famille dans une grille (défaut : 2). |
 | `discovery_filter_statut` | Statut des communes éligibles à la « Découverte du jour » (`souspref` ou `pref`). |
 | `discovery_exclude_flag` | Flag à exclure du pool de découverte (par défaut `plus_50k` pour ne garder que les villes méconnues). |
+| `corpus_filter_statut` | Filtre du corpus principal (`souspref` ou `pref` ou vide pour tout). |
+| `stats_endpoint` | URL de l'endpoint Apps Script qui agrège les scores (vide = stats locales uniquement). Voir section « Stats joueurs » plus bas. |
+
+### Coordonnées géographiques (lat/lon)
+
+L'onglet `corpus` du Google Sheet contient **deux colonnes obligatoires** : `lat` et `lon` (en degrés décimaux, WGS84). Elles sont utilisées par la **mini-carte de France** pour positionner chaque commune placée dans la grille.
+
+- Format : `43.492353` (latitude), `-1.465895` (longitude)
+- Source recommandée : centroïdes communaux de l'INSEE / GeoFLA
+- Pour une nouvelle commune ajoutée au corpus, renseigner ces deux colonnes sinon le point n'apparaîtra pas sur la mini-carte.
 
 ### Ajouter un critère paramétrique (région, code postal, etc.)
 
@@ -128,6 +138,61 @@ Trois types sont supportés sans toucher au code :
 - **`cp_first`** : test sur le premier chiffre du code postal. Ajouter id=`cp_X`, label=`...`, type=`cp_first`, value=`X`.
 
 Pour des règles plus complexes (« à moins de N km de »), il faudrait étendre le compilateur dans `index.html` (fonction `compileCriterion`).
+
+## Stats joueurs (optionnel) — backend Apps Script
+
+Le jeu enregistre par défaut tes stats personnelles (streak, meilleur score, distribution) dans `localStorage` côté joueur. Pour activer en plus la **comparaison avec les autres joueurs** (« Top X% des joueurs aujourd'hui »), il faut un mini backend qui agrège les scores. Le plus simple : un Google Apps Script attaché à un Sheet.
+
+### Étape 1 — Créer le Sheet de scores
+
+1. Sur Google Drive, crée un nouveau Sheet vierge nommé par exemple `sousprefdoku-scores`. *Tu peux aussi réutiliser ton Sheet de configuration existant.*
+2. Pas besoin de structurer les colonnes — le script créera l'onglet `scores` automatiquement à la première écriture.
+
+### Étape 2 — Coller le code Apps Script
+
+1. Dans ton Sheet, menu **Extensions → Apps Script**.
+2. Supprime le code par défaut, colle le contenu de `scripts/scores.gs` (fourni à la racine de ce repo).
+3. Bouton 💾 « Enregistrer le projet ». Donne un nom au projet (ex. `sousprefdoku-stats`).
+
+### Étape 3 — Déployer comme application web
+
+1. En haut à droite : **Déployer → Nouveau déploiement**.
+2. Engrenage à côté de « Sélectionner le type » → choisis **Application web**.
+3. Configuration :
+   - Description : `sousprefdoku stats v1` (au choix)
+   - **Exécuter en tant que** : `Moi (ton.email@gmail.com)`
+   - **Qui a accès** : `Tout le monde` ⚠️ important, sinon les requêtes anonymes du jeu seront refusées.
+4. Bouton **Déployer**. Première fois, il te demande d'autoriser le script à accéder à ton Sheet : tu acceptes (ton compte Google personnel).
+5. Une fenêtre te donne l'**URL de l'application web**. Format : `https://script.google.com/macros/s/AKfy.../exec`. **Copie-la**.
+
+### Étape 4 — Brancher l'URL dans ta config
+
+Deux moyens, au choix :
+
+**Option A — via le Google Sheet de config (préférée)** : ouvre ton Sheet de configuration du jeu (celui avec les onglets corpus/criteres/etc.). Dans l'onglet **`config`**, ajoute une ligne :
+   - key : `stats_endpoint`
+   - value : ton URL Apps Script
+   - description : `Endpoint Apps Script pour les stats globales`
+
+Lance ensuite Run workflow dans Actions → l'URL est intégrée dans `criteria.json` automatiquement.
+
+**Option B — directement dans `criteria.json`** : édite la dernière ligne, mets `"stats_endpoint": "https://script.google.com/..."`. Commit, push.
+
+### Étape 5 — Tester
+
+Recharge `https://alicathe.github.io/Sousprefdoku/`, joue une grille jusqu'à la fin. Clique sur « Voir mes stats » : tu dois voir un encart bleu « Top X% » (basé pour l'instant sur ton seul score, donc forcément 100 %, plus pertinent quand d'autres joueurs auront joué).
+
+Pour vérifier que ton score a bien été enregistré : ouvre ton Sheet de scores → onglet `scores` → tu dois voir une nouvelle ligne avec timestamp, date, attempts, ton anon_id.
+
+### Limites & sécurité
+
+- Apps Script gratuit autorise ~20 000 requêtes/jour. Largement suffisant pour un projet perso.
+- **Anti-tricherie minimal** : un même `anon_id` (généré aléatoirement par navigateur, stocké en localStorage) ne peut enregistrer **qu'un seul score par date**. Quelqu'un qui veut tricher peut juste vider son localStorage entre deux essais — c'est volontairement léger.
+- Aucune authentification, aucune donnée personnelle collectée. Juste : timestamp, date, nb d'essais, identifiant anonyme.
+
+### Si tu veux désactiver
+
+Vide simplement `stats_endpoint` dans la config. Le jeu retombe en mode « stats locales uniquement », sans rien casser.
 
 ## Tester en local
 

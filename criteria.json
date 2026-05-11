@@ -389,5 +389,9 @@
   "discovery_filter": {
     "statut": "souspref",
     "exclude_flag": "plus_50k"
-  }
+  },
+  "corpus_filter": {
+    "statut": "souspref"
+  },
+  "stats_endpoint": ""
 }
